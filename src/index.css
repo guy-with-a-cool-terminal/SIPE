@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 200 30% 96%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 200 30% 96%;
+
+    --popover: 222 40% 9%;
+    --popover-foreground: 200 30% 96%;
+
+    --primary: 200 95% 70%;
+    --primary-foreground: 222 47% 6%;
+    --primary-glow: 195 100% 78%;
+
+    --secondary: 222 35% 14%;
+    --secondary-foreground: 200 30% 96%;
+
+    --muted: 222 30% 12%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 200 95% 70%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 30% 18%;
+    --input: 217 30% 16%;
+    --ring: 200 95% 70%;
+
+    /* Bucket colors */
+    --bucket-s: 195 100% 70%;   /* Savings - icy blue */
+    --bucket-i: 175 80% 60%;    /* Invest - teal */
+    --bucket-p: 220 95% 75%;    /* Pay yourself - periwinkle */
+    --bucket-e: 260 75% 75%;    /* Expenses - lavender */
+
+    --gradient-hero: radial-gradient(ellipse at 50% 0%, hsl(200 95% 30% / 0.35), transparent 60%),
+                     radial-gradient(ellipse at 80% 60%, hsl(220 80% 20% / 0.4), transparent 50%),
+                     linear-gradient(180deg, hsl(222 47% 6%), hsl(222 50% 4%));
+    --gradient-text: linear-gradient(135deg, hsl(200 100% 88%), hsl(200 95% 65%));
+    --gradient-card: linear-gradient(160deg, hsl(222 40% 11% / 0.8), hsl(222 50% 7% / 0.6));
+
+    --shadow-glow: 0 0 80px hsl(200 95% 60% / 0.25);
+    --shadow-card: 0 20px 60px -20px hsl(222 80% 2% / 0.8);
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    background: var(--gradient-hero);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glass {
+    background: var(--gradient-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border));
+  }
+  .glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+}
+
+@keyframes float-up {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 40px hsl(200 95% 60% / 0.2); }
+  50% { box-shadow: 0 0 80px hsl(200 95% 60% / 0.45); }
+}
+.animate-float { animation: float-up 6s ease-in-out infinite; }
+.animate-fade-up { animation: fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
