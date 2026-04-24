@@ -4,6 +4,16 @@ import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integra
 import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 type Tab = "deposits" | "expenses";
@@ -20,6 +30,7 @@ const Transactions = () => {
   const [minAmt, setMinAmt] = useState("");
   const [maxAmt, setMaxAmt] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -81,11 +92,12 @@ const Transactions = () => {
     load();
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("Delete this transaction?")) return;
-    const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const remove = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
     if (error) return toast.error(error.message);
-    setRows(r => r.filter(t => t.id !== id));
+    setRows(r => r.filter(t => t.id !== deleteId));
+    setDeleteId(null);
   };
 
   return (
@@ -196,7 +208,7 @@ const Transactions = () => {
                       {tab === "deposits" ? "+" : "−"}{formatKES(Number(t.amount))}
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => remove(t.id)} className="text-muted-foreground hover:text-destructive transition">
+                      <button onClick={() => setDeleteId(t.id)} className="text-muted-foreground hover:text-destructive transition">
                         <Trash2 className="size-4" />
                       </button>
                     </td>
@@ -207,6 +219,24 @@ const Transactions = () => {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the transaction. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={remove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add expense modal */}
       {showAdd && (

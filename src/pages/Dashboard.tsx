@@ -35,7 +35,7 @@ const Dashboard = () => {
       monthStart.setHours(0, 0, 0, 0);
 
       const [balRes, recentRes, monthRes] = await Promise.all([
-        supabase.from("bucket_balances").select("*"),
+        supabase.from("bucket_balances").select("*").eq("user_id", user.id),
         // Only parent rows: deposits (income, parent_id IS NULL) and expenses
         supabase.from("transactions")
           .select("*")
