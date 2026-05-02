@@ -59,17 +59,19 @@ Deno.serve(async (req) => {
       { bucket: "P", pct: settings.pay_pct },
       { bucket: "E", pct: settings.expenses_pct },
     ];
-    const allocations = splits.map(s => ({
-      user_id: userId,
-      type: "income" as const,
-      bucket: s.bucket,
-      amount: Number((amount * s.pct / 100).toFixed(2)),
-      description: `Allocated to ${s.bucket}`,
-      source,
-      category,
-      parent_id: parent.id,
-      occurred_at: parent.occurred_at,
-    }));
+    const allocations = splits
+      .filter(s => s.pct > 0)
+      .map(s => ({
+        user_id: userId,
+        type: "income" as const,
+        bucket: s.bucket,
+        amount: Number((amount * s.pct / 100).toFixed(2)),
+        description: `Allocated to ${s.bucket}`,
+        source,
+        category,
+        parent_id: parent.id,
+        occurred_at: parent.occurred_at,
+      }));
     const { error: allocErr } = await admin.from("transactions").insert(allocations);
     if (allocErr) return json({ error: allocErr.message }, 500);
 
