@@ -117,9 +117,16 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
                         )}
                         <span className="text-sm">{meta ? meta.name : "—"}</span>
                       </div>
-                      <span className={`text-sm font-semibold ${isDeposit ? "text-primary" : ""}`}>
-                        {isDeposit ? "+" : "−"}{formatKES(Number(child.amount))}
-                      </span>
+                      <div className="text-right">
+                        {isDeposit && Number(transaction.amount) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {((Number(child.amount) / Number(transaction.amount)) * 100).toFixed(0)}%
+                          </p>
+                        )}
+                        <span className={`text-sm font-semibold ${isDeposit ? "text-primary" : ""}`}>
+                          {isDeposit ? "+" : "−"}{formatKES(Number(child.amount))}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
