@@ -16,9 +16,10 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   userId: string;
+  prefill?: ExpenseTemplate;
 }
 
-export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
+export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Props) => {
   const [splitMode, setSplitMode] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
   const [splitRows, setSplitRows] = useState<SplitRow[]>([
@@ -49,6 +50,13 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
       setBalances(map);
       setTemplates(tmplRes.data || []);
     });
+    if (prefill) {
+      setSplitMode(false);
+      setFormAmount(String(prefill.amount));
+      setFormBucket(prefill.bucket);
+      setFormCategory(prefill.category || "");
+      setFormDescription(prefill.name);
+    }
   }, [open, userId]);
 
   if (!open) return null;

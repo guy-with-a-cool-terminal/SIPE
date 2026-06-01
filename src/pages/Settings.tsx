@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BUCKET_META, formatKES, type AllocationSettings, type Bucket, type ExpenseTemplate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { Check, Copy, ExternalLink, Link2, Plus, Trash2, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Trash2, X } from "lucide-react";
+import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
@@ -45,6 +46,7 @@ const SettingsPage = () => {
   const [billAmount, setBillAmount] = useState("");
   const [billCategory, setBillCategory] = useState("");
   const [savingBill, setSavingBill] = useState(false);
+  const [logTemplate, setLogTemplate] = useState<ExpenseTemplate | null>(null);
 
   // Payment links state
   const [links, setLinks] = useState<PaymentLink[]>([]);
@@ -421,6 +423,13 @@ const SettingsPage = () => {
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                           <span className="text-sm font-semibold tabular-nums">{formatKES(t.amount)}</span>
+                          <button
+                            onClick={() => setLogTemplate(t)}
+                            className="text-muted-foreground hover:text-primary transition"
+                            title="Log this expense now"
+                          >
+                            <LogIn className="size-4" />
+                          </button>
                           <button onClick={() => deleteBill(t.id)} className="text-muted-foreground hover:text-destructive transition">
                             <Trash2 className="size-4" />
                           </button>
@@ -537,6 +546,14 @@ const SettingsPage = () => {
 
         </div>
       </div>
+
+      <AddExpenseModal
+        open={!!logTemplate}
+        prefill={logTemplate ?? undefined}
+        onClose={() => setLogTemplate(null)}
+        onSaved={() => setLogTemplate(null)}
+        userId={user!.id}
+      />
     </div>
   );
 };
