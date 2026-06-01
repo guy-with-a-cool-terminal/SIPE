@@ -213,10 +213,7 @@ const Dashboard = () => {
     <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Welcome back, {firstName}</p>
-          <h1 className="text-xl font-bold mt-0.5">Dashboard</h1>
-        </div>
+        <h1 className="text-xl font-bold">Welcome back, {firstName}</h1>
         <button
           onClick={() => setShowDeposit(true)}
           className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2 text-sm"
