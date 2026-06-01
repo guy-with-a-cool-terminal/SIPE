@@ -334,6 +334,13 @@ const Dashboard = () => {
                 />
               </div>
 
+              {/* Compact bill shortfall warning (collapsed state) */}
+              {!isCardExpanded && (committed[b] ?? 0) > 0 && balance < (committed[b] ?? 0) && (
+                <p className="mt-1.5 text-xs text-destructive font-medium">
+                  Short {formatKES((committed[b] ?? 0) - balance)} for bills
+                </p>
+              )}
+
               {/* Expanded detail */}
               {isCardExpanded && (
                 <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs text-muted-foreground">
@@ -345,12 +352,31 @@ const Dashboard = () => {
                     <span>{hasLimit ? "Monthly limit" : "Allocated"}</span>
                     <span className="tabular-nums">{formatKES(denominator)}</span>
                   </div>
-                  {(committed[b] ?? 0) > 0 && (
-                    <div className="flex justify-between">
-                      <span>Committed bills</span>
-                      <span className="tabular-nums">{formatKES(committed[b]!)}</span>
-                    </div>
-                  )}
+                  {(committed[b] ?? 0) > 0 && (() => {
+                    const committedAmt = committed[b]!;
+                    const freeBalance = balance - committedAmt;
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Committed bills</span>
+                          <span className="tabular-nums">{formatKES(committedAmt)}</span>
+                        </div>
+                        <div className="flex justify-between font-medium">
+                          {freeBalance >= 0 ? (
+                            <>
+                              <span className="text-primary">After bills</span>
+                              <span className="text-primary tabular-nums">{formatKES(freeBalance)} free</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-destructive">Bill shortfall</span>
+                              <span className="text-destructive tabular-nums">−{formatKES(Math.abs(freeBalance))}</span>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                   {hasPeriodActivity && (() => {
                     const bktOpen = bucketOpening(b);
                     return (
