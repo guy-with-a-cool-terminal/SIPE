@@ -21,7 +21,7 @@ import { TransferModal } from "@/components/app/TransferModal";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 type Tab = "deposits" | "expenses";
-type Period = "all" | "week" | "month";
+type Period = "all" | "week" | "lastmonth" | "month";
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -63,6 +63,11 @@ const Transactions = () => {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       setFrom(start.toISOString().slice(0, 10));
       setTo(todayStr);
+    } else if (period === "lastmonth") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end   = new Date(now.getFullYear(), now.getMonth(), 1);
+      setFrom(start.toISOString().slice(0, 10));
+      setTo(new Date(end.getTime() - 86400000).toISOString().slice(0, 10));
     } else if (period === "week") {
       const start = new Date(now);
       start.setDate(now.getDate() - now.getDay());
@@ -122,7 +127,7 @@ const Transactions = () => {
     `px-3 py-1.5 rounded-lg text-xs font-medium transition ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Transactions</h1>
@@ -163,6 +168,7 @@ const Transactions = () => {
       <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-4">
         <button className={periodBtnClass("all")} onClick={() => setPeriod("all")}>All time</button>
         <button className={periodBtnClass("week")} onClick={() => setPeriod("week")}>This week</button>
+        <button className={periodBtnClass("lastmonth")} onClick={() => setPeriod("lastmonth")}>Last month</button>
         <button className={periodBtnClass("month")} onClick={() => setPeriod("month")}>This month</button>
       </div>
 
@@ -277,7 +283,7 @@ const Transactions = () => {
                       <td className="px-4 py-3">
                         {t.bucket
                           ? <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: `hsl(${BUCKET_META[t.bucket].color} / 0.15)`, color: `hsl(${BUCKET_META[t.bucket].color})` }}>{BUCKET_META[t.bucket].name}</span>
-                          : <span className="text-muted-foreground text-xs italic">split</span>
+                          : <span className="text-muted-foreground text-xs">split</span>
                         }
                       </td>
                     )}

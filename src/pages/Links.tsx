@@ -84,7 +84,7 @@ const Links = () => {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Payment links</h1>

@@ -30,6 +30,7 @@
 
     --destructive: 0 75% 60%;
     --destructive-foreground: 210 40% 98%;
+    --warning: 45 100% 60%;
 
     --border: 217 30% 18%;
     --input: 217 30% 16%;
@@ -59,13 +60,12 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'ss01', 'cv11';
     background: var(--gradient-hero);
     background-attachment: fixed;
   }
   h1, h2, h3, .font-display {
     font-family: 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.01em;
     font-weight: 700;
   }
 }

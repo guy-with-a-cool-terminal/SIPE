@@ -56,7 +56,7 @@ const LinkDetail = () => {
   if (!link) return <div className="p-10 text-muted-foreground">Link not found.</div>;
 
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto">
+    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
       <Link to="/links" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2 mb-6">
         <ArrowLeft className="size-4" /> All links
       </Link>

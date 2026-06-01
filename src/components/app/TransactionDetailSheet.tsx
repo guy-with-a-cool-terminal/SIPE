@@ -91,7 +91,7 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
               {isDeposit ? "Bucket allocations" : "Split breakdown"}
             </p>
             {children.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">
+              <p className="text-sm text-muted-foreground">
                 No allocation data found — this may be a legacy deposit.
               </p>
             ) : (

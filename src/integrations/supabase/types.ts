@@ -16,6 +16,20 @@ export interface AllocationSettings {
   pay_pct: number;
   expenses_pct: number;
   updated_at: string;
+  savings_limit:  number | null;
+  invest_limit:   number | null;
+  pay_limit:      number | null;
+  expenses_limit: number | null;
+}
+
+export interface ExpenseTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  category: string | null;
+  bucket: Bucket;
+  amount: number;
+  created_at: string;
 }
 
 export interface Transaction {

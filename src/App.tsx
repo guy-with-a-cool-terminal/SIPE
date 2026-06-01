@@ -15,6 +15,7 @@ import Transactions from "./pages/Transactions.tsx";
 import Settings from "./pages/Settings.tsx";
 import Links from "./pages/Links.tsx";
 import LinkDetail from "./pages/LinkDetail.tsx";
+import Analytics from "./pages/Analytics.tsx";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/analytics" element={<Analytics />} />
               <Route path="/links" element={<Links />} />
               <Route path="/links/:id" element={<LinkDetail />} />
               <Route path="/settings" element={<Settings />} />

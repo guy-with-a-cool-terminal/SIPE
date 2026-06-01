@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BUCKET_META, formatKES, type Bucket, type BucketBalance } from "@/integrations/supabase/types";
+import { BUCKET_META, formatKES, type Bucket, type BucketBalance, type ExpenseTemplate } from "@/integrations/supabase/types";
 import { Plus, X, Minus, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,21 +27,28 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
   ]);
   const [saving, setSaving] = useState(false);
   const [balances, setBalances] = useState<Partial<Record<Bucket, number>>>({});
-  const [singleBucket, setSingleBucket] = useState<Bucket>("E");
+  const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
+
+  // Controlled single-mode fields
+  const [formAmount, setFormAmount] = useState("");
+  const [formBucket, setFormBucket] = useState<Bucket>("E");
+  const [formCategory, setFormCategory] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     if (!open) return;
-    supabase
-      .from("bucket_balances")
-      .select("bucket,balance")
-      .eq("user_id", userId)
-      .then(({ data }) => {
-        const map: Partial<Record<Bucket, number>> = {};
-        (data as Pick<BucketBalance, "bucket" | "balance">[] | null || []).forEach(r => {
-          map[r.bucket as Bucket] = Number(r.balance);
-        });
-        setBalances(map);
+    Promise.all([
+      supabase.from("bucket_balances").select("bucket,balance").eq("user_id", userId),
+      supabase.from("expense_templates").select("*").eq("user_id", userId).order("name"),
+    ]).then(([balRes, tmplRes]) => {
+      const map: Partial<Record<Bucket, number>> = {};
+      (balRes.data as Pick<BucketBalance, "bucket" | "balance">[] | null || []).forEach(r => {
+        map[r.bucket as Bucket] = Number(r.balance);
       });
+      setBalances(map);
+      setTemplates(tmplRes.data || []);
+    });
   }, [open, userId]);
 
   if (!open) return null;
@@ -49,6 +56,14 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
   const splitSum = splitRows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
   const total = Number(totalAmount) || 0;
   const splitValid = total > 0 && Math.abs(splitSum - total) < 0.01;
+
+  const applyTemplate = (t: ExpenseTemplate) => {
+    setSplitMode(false);
+    setFormAmount(String(t.amount));
+    setFormBucket(t.bucket);
+    setFormCategory(t.category || "");
+    setFormDescription(t.name);
+  };
 
   const autoSplit = () => {
     if (total <= 0) return toast.error("Enter a total amount first");
@@ -67,14 +82,15 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
       return { bucket: b, amount: String(share) };
     });
     setSplitRows(newRows);
-    toast.success("Split suggested based on bucket balances");
+    toast.success("Suggested split based on bucket balances");
   };
 
   const handleClose = () => {
     setSplitMode(false);
     setTotalAmount("");
     setSplitRows([{ bucket: "E", amount: "" }, { bucket: "P", amount: "" }]);
-    setSingleBucket("E");
+    setFormAmount(""); setFormBucket("E"); setFormCategory(""); setFormDescription("");
+    setFormDate(new Date().toISOString().slice(0, 10));
     onClose();
   };
 
@@ -93,10 +109,9 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
   const addExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (saving) return;
-    const fd = new FormData(e.currentTarget);
-    const category = String(fd.get("category") || "") || null;
-    const description = String(fd.get("description") || "") || null;
-    const occurred_at = new Date(String(fd.get("date") || new Date().toISOString().slice(0, 10))).toISOString();
+    const category = formCategory || null;
+    const description = formDescription || null;
+    const occurred_at = new Date(formDate).toISOString();
 
     if (splitMode) {
       if (total <= 0) return toast.error("Enter a valid total amount");
@@ -119,12 +134,11 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
       setSaving(false);
       if (childErr) return toast.error(childErr.message);
     } else {
-      const amount = Number(fd.get("amount"));
-      const bucket = fd.get("bucket") as Bucket;
+      const amount = Number(formAmount);
       if (!amount || amount <= 0) return toast.error("Enter a valid amount");
       setSaving(true);
       const { error } = await supabase.from("transactions").insert({
-        user_id: userId, type: "expense", bucket, amount, category, description, occurred_at,
+        user_id: userId, type: "expense", bucket: formBucket, amount, category, description, occurred_at,
       });
       setSaving(false);
       if (error) return toast.error(error.message);
@@ -150,6 +164,27 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
         </div>
 
         <div className="space-y-4">
+          {/* Quick-add from saved bills */}
+          {templates.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Quick add bill</p>
+              <div className="flex flex-wrap gap-2">
+                {templates.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => applyTemplate(t)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border hover:bg-secondary/40 transition"
+                    style={{ borderColor: `hsl(${BUCKET_META[t.bucket].color} / 0.4)` }}
+                  >
+                    <span style={{ color: `hsl(${BUCKET_META[t.bucket].color})` }}>{t.bucket}</span>
+                    {t.name} · {formatKES(t.amount)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Split mode toggle */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <div
@@ -211,12 +246,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
                             className={`flex-1 bg-input border rounded-xl px-3 py-2 text-sm focus:outline-none ${wouldOverdraw ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"}`}
                           />
                           {wouldOverdraw && <AlertTriangle className="size-4 text-destructive flex-shrink-0" />}
-                          {splitRows.length > 2 && !wouldOverdraw && (
-                            <button type="button" onClick={() => removeSplitRow(i)} className="text-muted-foreground hover:text-destructive flex-shrink-0">
-                              <Minus className="size-4" />
-                            </button>
-                          )}
-                          {splitRows.length > 2 && wouldOverdraw && (
+                          {splitRows.length > 2 && (
                             <button type="button" onClick={() => removeSplitRow(i)} className="text-muted-foreground hover:text-destructive flex-shrink-0">
                               <Minus className="size-4" />
                             </button>
@@ -238,7 +268,6 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
                 >
                   <Plus className="size-3.5" /> Add bucket
                 </button>
-                {/* Validation indicator */}
                 {total > 0 && (
                   <p className={`text-xs mt-2 ${splitValid ? "text-green-500" : "text-destructive"}`}>
                     Split total: {formatKES(splitSum)} of {formatKES(total)}
@@ -252,15 +281,16 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
               <label className="block">
                 <span className="text-sm text-muted-foreground">Amount (KES)</span>
                 <input
-                  name="amount" type="number" step="0.01" required
+                  type="number" step="0.01" required value={formAmount}
+                  onChange={(e) => setFormAmount(e.target.value)}
                   className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary"
                 />
               </label>
               <label className="block">
                 <span className="text-sm text-muted-foreground">Bucket</span>
                 <select
-                  name="bucket" required value={singleBucket}
-                  onChange={(e) => setSingleBucket(e.target.value as Bucket)}
+                  value={formBucket}
+                  onChange={(e) => setFormBucket(e.target.value as Bucket)}
                   className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
                 >
                   {ALL_BUCKETS.map(b => (
@@ -269,10 +299,10 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
                     </option>
                   ))}
                 </select>
-                {(balances[singleBucket] ?? 0) <= 0 && (
+                {(balances[formBucket] ?? 0) <= 0 && (
                   <p className="flex items-center gap-1 text-xs text-destructive mt-1">
                     <AlertTriangle className="size-3.5" />
-                    {BUCKET_META[singleBucket].name} is empty or negative. Consider switching buckets or using split mode.
+                    {BUCKET_META[formBucket].name} is empty or negative. Consider switching buckets or using split mode.
                   </p>
                 )}
               </label>
@@ -281,15 +311,27 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId }: Props) => {
 
           <label className="block">
             <span className="text-sm text-muted-foreground">Category</span>
-            <input name="category" placeholder="e.g. Software, Tax, Coffee" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            <input
+              value={formCategory} onChange={(e) => setFormCategory(e.target.value)}
+              placeholder="e.g. Software, Tax, Coffee"
+              className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary"
+            />
           </label>
           <label className="block">
             <span className="text-sm text-muted-foreground">Description</span>
-            <input name="description" placeholder="Optional" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            <input
+              value={formDescription} onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="Optional"
+              className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary"
+            />
           </label>
           <label className="block">
             <span className="text-sm text-muted-foreground">Date</span>
-            <input name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5" />
+            <input
+              type="date" value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
+            />
           </label>
         </div>
 
