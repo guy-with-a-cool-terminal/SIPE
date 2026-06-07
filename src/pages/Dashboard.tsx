@@ -137,17 +137,21 @@ const Dashboard = () => {
     const rows = filterByRange(allRows);
     let income = 0, spend = 0;
     const byBucket = Object.fromEntries(
-      ALL_BUCKETS.map(b => [b, { allocated: 0, spent: 0, actualSpent: 0 }])
-    ) as Record<Bucket, { allocated: number; spent: number; actualSpent: number }>;
+      ALL_BUCKETS.map(b => [b, { allocated: 0, actualAllocated: 0, spent: 0, actualSpent: 0 }])
+    ) as Record<Bucket, { allocated: number; actualAllocated: number; spent: number; actualSpent: number }>;
 
     for (const r of rows) {
       if (r.parent_id === null && r.type === "income" && r.category !== "Transfer") income += Number(r.amount);
       if (r.parent_id === null && r.type === "expense" && r.category !== "Transfer") spend += Number(r.amount);
       if (r.bucket) {
-        if (r.type === "income") byBucket[r.bucket].allocated += Number(r.amount);
+        const b = r.bucket as Bucket;
+        if (r.type === "income") {
+          byBucket[b].allocated += Number(r.amount); // includes transfers, used for opening balance math
+          if (r.category !== "Transfer") byBucket[b].actualAllocated += Number(r.amount);
+        }
         if (r.type === "expense") {
-          byBucket[r.bucket].spent += Number(r.amount);
-          if (r.category !== "Transfer") byBucket[r.bucket].actualSpent += Number(r.amount);
+          byBucket[b].spent += Number(r.amount); // includes transfers, used for opening balance math
+          if (r.category !== "Transfer") byBucket[b].actualSpent += Number(r.amount);
         }
       }
     }
@@ -184,8 +188,8 @@ const Dashboard = () => {
       }
       const g = map.get(key)!;
       g.items.push(t);
-      if (t.type === "income") g.income += Number(t.amount);
-      else g.spend += Number(t.amount);
+      if (t.type === "income" && t.category !== "Transfer") g.income += Number(t.amount);
+      else if (t.type === "expense" && t.category !== "Transfer") g.spend += Number(t.amount);
     }
     return Array.from(map.entries()).map(([key, g]) => ({ key, ...g }));
   }, [filteredRecent]);
@@ -291,7 +295,7 @@ const Dashboard = () => {
 
           const isCardExpanded = expandedCards.has(b);
           const periodBkt = periodStats.byBucket[b];
-          const hasPeriodActivity = period !== "all" && (periodBkt.allocated > 0 || periodBkt.actualSpent > 0);
+          const hasPeriodActivity = period !== "all" && (periodBkt.actualAllocated > 0 || periodBkt.actualSpent > 0);
 
           return (
             <div key={b} className="glass rounded-xl p-4">
@@ -385,10 +389,10 @@ const Dashboard = () => {
                             <span className="tabular-nums">{formatKES(bktOpen)}</span>
                           </div>
                         )}
-                        {periodBkt.allocated > 0 && (
+                        {periodBkt.actualAllocated > 0 && (
                           <div className="flex justify-between">
                             <span>In</span>
-                            <span className="text-primary tabular-nums">+{formatKES(periodBkt.allocated)}</span>
+                            <span className="text-primary tabular-nums">+{formatKES(periodBkt.actualAllocated)}</span>
                           </div>
                         )}
                         {periodBkt.actualSpent > 0 && (

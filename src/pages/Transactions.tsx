@@ -76,15 +76,15 @@ const Transactions = () => {
     }
   }, [period]);
 
-  // Deposits: parent income rows only
+  // Deposits: real income only — bucket === null excludes transfer income rows
   const deposits = useMemo(() =>
-    rows.filter(t => t.type === "income" && t.parent_id === null),
+    rows.filter(t => t.type === "income" && t.parent_id === null && t.bucket === null),
     [rows]
   );
 
-  // Expenses: parent expense rows only (split children excluded)
+  // Expenses: real expenses only — no transfers
   const expenses = useMemo(() =>
-    rows.filter(t => t.type === "expense" && t.parent_id === null),
+    rows.filter(t => t.type === "expense" && t.parent_id === null && t.category !== "Transfer"),
     [rows]
   );
 
