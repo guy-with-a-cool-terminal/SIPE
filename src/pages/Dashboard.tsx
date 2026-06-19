@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BUCKET_META, formatKES, type Bucket, type BucketBalance, type Transaction } from "@/integrations/supabase/types";
+import { BUCKET_META, formatKES, type Bucket, type BucketBalance, type ExpenseTemplate, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, Plus, X } from "lucide-react";
 import { DepositModal } from "@/components/app/DepositModal";
@@ -32,7 +32,7 @@ const Dashboard = () => {
   const [period, setPeriod] = useState<Period>("all");
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
   const [limits, setLimits] = useState<Partial<Record<Bucket, number>>>({});
-  const [committed, setCommitted] = useState<Partial<Record<Bucket, number>>>({});
+  const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
   // Which bucket cards are expanded (showing detail)
   const [expandedCards, setExpandedCards] = useState<Set<Bucket>>(new Set());
 
@@ -59,7 +59,7 @@ const Dashboard = () => {
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("expense_templates")
-          .select("bucket,amount")
+          .select("*")
           .eq("user_id", user.id),
       ]);
 
@@ -95,18 +95,51 @@ const Dashboard = () => {
         });
       }
 
-      const committedMap: Partial<Record<Bucket, number>> = {};
-      (templatesRes.data || []).forEach((t: { bucket: string; amount: number }) => {
-        const b = t.bucket as Bucket;
-        committedMap[b] = (committedMap[b] || 0) + Number(t.amount);
-      });
-      setCommitted(committedMap);
+      setTemplates(templatesRes.data || []);
 
       setLoading(false);
     })();
   }, [user, reloadKey]);
 
   const totalBalance = ALL_BUCKETS.reduce((s, b) => s + Number(balances[b]?.balance || 0), 0);
+
+  // Total committed bills per bucket (ignoring payments)
+  const committed = useMemo(() => {
+    const map: Partial<Record<Bucket, number>> = {};
+    for (const t of templates) {
+      map[t.bucket] = (map[t.bucket] || 0) + Number(t.amount);
+    }
+    return map;
+  }, [templates]);
+
+  // How much of each template has been paid this calendar month (via template_id link)
+  const thisMonthStart = useMemo(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
+  }, []);
+
+  const remainingCommitted = useMemo(() => {
+    const paid: Record<string, number> = {};
+    for (const r of allRows) {
+      if (r.type !== "expense" || new Date(r.occurred_at) < thisMonthStart) continue;
+      if (r.template_id) {
+        // Linked payment (new flow)
+        paid[r.template_id] = (paid[r.template_id] || 0) + Number(r.amount);
+      } else if (r.bucket && r.description) {
+        // Fallback: match by bucket + description for pre-migration payments
+        const match = templates.find(t =>
+          t.bucket === r.bucket &&
+          t.name.toLowerCase() === r.description!.toLowerCase()
+        );
+        if (match) paid[match.id] = (paid[match.id] || 0) + Number(r.amount);
+      }
+    }
+    const map: Partial<Record<Bucket, number>> = {};
+    for (const t of templates) {
+      const remaining = Math.max(0, Number(t.amount) - (paid[t.id] || 0));
+      map[t.bucket] = (map[t.bucket] || 0) + remaining;
+    }
+    return map;
+  }, [templates, allRows, thisMonthStart]);
 
   const periodRange = useMemo((): { start: Date | null; end: Date | null } => {
     if (period === "all") return { start: null, end: null };
@@ -336,9 +369,9 @@ const Dashboard = () => {
               </div>
 
               {/* Compact bill shortfall warning (collapsed state) */}
-              {!isCardExpanded && (committed[b] ?? 0) > 0 && balance < (committed[b] ?? 0) && (
+              {!isCardExpanded && (remainingCommitted[b] ?? 0) > 0 && balance < (remainingCommitted[b] ?? 0) && (
                 <p className="mt-1.5 text-xs text-destructive font-medium">
-                  Short {formatKES((committed[b] ?? 0) - balance)} for bills
+                  Short {formatKES((remainingCommitted[b] ?? 0) - balance)} for bills
                 </p>
               )}
 
@@ -354,16 +387,30 @@ const Dashboard = () => {
                     <span className="tabular-nums">{formatKES(denominator)}</span>
                   </div>
                   {(committed[b] ?? 0) > 0 && (() => {
-                    const committedAmt = committed[b]!;
-                    const freeBalance = balance - committedAmt;
+                    const totalCommitted = committed[b]!;
+                    const remaining = remainingCommitted[b] ?? 0;
+                    const paidSoFar = totalCommitted - remaining;
+                    const allPaid = remaining === 0;
+                    const freeBalance = balance - remaining;
                     return (
                       <>
                         <div className="flex justify-between">
                           <span>Committed bills</span>
-                          <span className="tabular-nums">{formatKES(committedAmt)}</span>
+                          <span className="tabular-nums">{formatKES(totalCommitted)}</span>
                         </div>
+                        {paidSoFar > 0 && !allPaid && (
+                          <div className="flex justify-between text-primary/70">
+                            <span>Paid this month</span>
+                            <span className="tabular-nums">−{formatKES(paidSoFar)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between font-medium">
-                          {freeBalance >= 0 ? (
+                          {allPaid ? (
+                            <>
+                              <span className="text-primary">Bills covered</span>
+                              <span className="text-primary">✓</span>
+                            </>
+                          ) : freeBalance >= 0 ? (
                             <>
                               <span className="text-primary">After bills</span>
                               <span className="text-primary tabular-nums">{formatKES(freeBalance)} free</span>

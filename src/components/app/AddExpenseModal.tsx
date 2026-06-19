@@ -29,6 +29,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
   const [saving, setSaving] = useState(false);
   const [balances, setBalances] = useState<Partial<Record<Bucket, number>>>({});
   const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   // Controlled single-mode fields
   const [formAmount, setFormAmount] = useState("");
@@ -56,6 +57,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setFormBucket(prefill.bucket);
       setFormCategory(prefill.category || "");
       setFormDescription(prefill.name);
+      setActiveTemplateId(prefill.id);
     }
   }, [open, userId]);
 
@@ -71,6 +73,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     setFormBucket(t.bucket);
     setFormCategory(t.category || "");
     setFormDescription(t.name);
+    setActiveTemplateId(t.id);
   };
 
   const autoSplit = () => {
@@ -99,6 +102,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     setSplitRows([{ bucket: "E", amount: "" }, { bucket: "P", amount: "" }]);
     setFormAmount(""); setFormBucket("E"); setFormCategory(""); setFormDescription("");
     setFormDate(new Date().toISOString().slice(0, 10));
+    setActiveTemplateId(null);
     onClose();
   };
 
@@ -147,6 +151,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setSaving(true);
       const { error } = await supabase.from("transactions").insert({
         user_id: userId, type: "expense", bucket: formBucket, amount, category, description, occurred_at,
+        template_id: activeTemplateId,
       });
       setSaving(false);
       if (error) return toast.error(error.message);

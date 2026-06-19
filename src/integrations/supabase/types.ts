@@ -42,6 +42,7 @@ export interface Transaction {
   description: string | null;
   paystack_ref: string | null;
   parent_id: string | null;
+  template_id: string | null;
   source: string | null;
   payment_link_id: string | null;
   occurred_at: string;
