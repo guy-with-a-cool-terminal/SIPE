@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowLeftRight, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, BarChart3, Landmark, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const links = [
   { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/analytics",   label: "Analytics",    icon: BarChart3 },
+  { to: "/debts",       label: "Debts",        icon: Landmark },
   { to: "/settings",    label: "Settings",     icon: Settings },
 ];
 

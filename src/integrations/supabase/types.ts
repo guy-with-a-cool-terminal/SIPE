@@ -49,6 +49,19 @@ export interface Transaction {
   created_at: string;
 }
 
+export interface Debt {
+  id: string;
+  user_id: string;
+  direction: "owe" | "owed";
+  party: string;
+  description: string | null;
+  amount: number;
+  due_date: string | null;
+  settled: boolean;
+  settled_at: string | null;
+  created_at: string;
+}
+
 export interface BucketBalance {
   user_id: string;
   bucket: Bucket;

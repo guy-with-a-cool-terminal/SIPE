@@ -16,6 +16,7 @@ import Settings from "./pages/Settings.tsx";
 import Links from "./pages/Links.tsx";
 import LinkDetail from "./pages/LinkDetail.tsx";
 import Analytics from "./pages/Analytics.tsx";
+import Debts from "./pages/Debts.tsx";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/debts" element={<Debts />} />
               <Route path="/links" element={<Links />} />
               <Route path="/links/:id" element={<LinkDetail />} />
               <Route path="/settings" element={<Settings />} />
