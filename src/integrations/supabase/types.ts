@@ -62,6 +62,15 @@ export interface Debt {
   created_at: string;
 }
 
+export interface DebtPayment {
+  id: string;
+  debt_id: string;
+  user_id: string;
+  amount: number;
+  note: string | null;
+  paid_at: string;
+}
+
 export interface BucketBalance {
   user_id: string;
   bucket: Bucket;

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatKES, type Debt } from "@/integrations/supabase/types";
+import { formatKES, type Debt, type DebtPayment } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -10,37 +10,48 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type Direction = "owe" | "owed";
-
 const emptyForm = { party: "", description: "", amount: "", due_date: "" };
 
 const Debts = () => {
   const { user } = useAuth();
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [payments, setPayments] = useState<DebtPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSettled, setShowSettled] = useState(false);
+
+  // Add debt form
   const [addDir, setAddDir] = useState<Direction | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [settleId, setSettleId] = useState<string | null>(null);
+
+  // Record payment
+  const [payingDebtId, setPayingDebtId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [savingPay, setSavingPay] = useState(false);
+
+  // Expanded payment history per debt
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("debts")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setDebts(data || []);
+    const [debtsRes, paymentsRes] = await Promise.all([
+      supabase.from("debts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+      supabase.from("debt_payments").select("*").eq("user_id", user!.id).order("paid_at", { ascending: true }),
+    ]);
+    if (debtsRes.error) toast.error(debtsRes.error.message);
+    setDebts(debtsRes.data || []);
+    setPayments(paymentsRes.data || []);
     setLoading(false);
   };
 
   useEffect(() => { if (user) load(); }, [user]);
 
-  const openAdd = (dir: Direction) => {
-    setForm(emptyForm);
-    setAddDir(dir);
-  };
+  const paidFor = (debtId: string) =>
+    payments.filter(p => p.debt_id === debtId).reduce((s, p) => s + Number(p.amount), 0);
+
+  const remaining = (debt: Debt) => Math.max(0, Number(debt.amount) - paidFor(debt.id));
 
   const saveDebt = async () => {
     if (!form.party.trim()) return toast.error("Enter a name");
@@ -59,18 +70,35 @@ const Debts = () => {
     if (error) return toast.error(error.message);
     toast.success("Added");
     setAddDir(null);
+    setForm(emptyForm);
     load();
   };
 
-  const settle = async () => {
-    if (!settleId) return;
-    const { error } = await supabase
-      .from("debts")
-      .update({ settled: true, settled_at: new Date().toISOString() })
-      .eq("id", settleId);
-    if (error) return toast.error(error.message);
-    toast.success("Marked as settled");
-    setSettleId(null);
+  const recordPayment = async (debt: Debt) => {
+    const amount = Number(payAmount);
+    if (!amount || amount <= 0) return toast.error("Enter a valid amount");
+    const rem = remaining(debt);
+    if (amount > rem + 0.01) return toast.error(`Max remaining is ${formatKES(rem)}`);
+    setSavingPay(true);
+    const { error } = await supabase.from("debt_payments").insert({
+      debt_id: debt.id,
+      user_id: user!.id,
+      amount,
+      note: payNote.trim() || null,
+    });
+    if (error) { setSavingPay(false); return toast.error(error.message); }
+    if (amount >= rem - 0.01) {
+      await supabase.from("debts")
+        .update({ settled: true, settled_at: new Date().toISOString() })
+        .eq("id", debt.id);
+      toast.success("Fully settled!");
+    } else {
+      toast.success(`Payment recorded · ${formatKES(rem - amount)} remaining`);
+    }
+    setSavingPay(false);
+    setPayingDebtId(null);
+    setPayAmount("");
+    setPayNote("");
     load();
   };
 
@@ -83,68 +111,167 @@ const Debts = () => {
     load();
   };
 
-  const active = debts.filter(d => !d.settled);
-  const settled = debts.filter(d => d.settled);
-  const iOwe  = active.filter(d => d.direction === "owe");
-  const owedMe = active.filter(d => d.direction === "owed");
-  const totalOwe  = iOwe.reduce((s, d) => s + Number(d.amount), 0);
-  const totalOwed = owedMe.reduce((s, d) => s + Number(d.amount), 0);
-  const net = totalOwed - totalOwe;
+  const toggleHistory = (id: string) =>
+    setExpandedHistory(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const formatDue = (due: string | null) => {
     if (!due) return null;
     const d = new Date(due);
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const overdue = d < today;
-    const label = d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-    return { label, overdue };
+    return {
+      label: d.toLocaleDateString("en-KE", { day: "numeric", month: "short" }),
+      overdue: d < today,
+    };
   };
 
-  const DebtList = ({ items, dir }: { items: Debt[]; dir: Direction }) => (
-    <div className="space-y-2">
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">None yet</p>
-      ) : (
-        items.map(d => {
-          const due = formatDue(d.due_date);
-          return (
-            <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/20 border border-border">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm">{d.party}</span>
-                  {due && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${due.overdue ? "bg-destructive/10 text-destructive" : "bg-secondary text-muted-foreground"}`}>
-                      {due.overdue ? "overdue" : ""} {due.label}
-                    </span>
-                  )}
-                </div>
-                {d.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{d.description}</p>}
-              </div>
-              <span className={`text-sm font-semibold tabular-nums flex-shrink-0 ${dir === "owed" ? "text-primary" : ""}`}>
-                {dir === "owed" ? "+" : "−"}{formatKES(Number(d.amount))}
-              </span>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => setSettleId(d.id)}
-                  className="p-1 rounded-md text-muted-foreground hover:text-primary transition"
-                  title="Mark settled"
-                >
-                  <Check className="size-4" />
-                </button>
-                <button
-                  onClick={() => setDeleteId(d.id)}
-                  className="p-1 rounded-md text-muted-foreground hover:text-destructive transition"
-                  title="Delete"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
+  const active = debts.filter(d => !d.settled);
+  const settled = debts.filter(d => d.settled);
+  const iOwe   = active.filter(d => d.direction === "owe");
+  const owedMe = active.filter(d => d.direction === "owed");
+  const totalOwe  = iOwe.reduce((s, d) => s + remaining(d), 0);
+  const totalOwed = owedMe.reduce((s, d) => s + remaining(d), 0);
+  const net = totalOwed - totalOwe;
+
+  const renderDebt = (d: Debt, dir: Direction) => {
+    const paid = paidFor(d.id);
+    const rem = remaining(d);
+    const pct = Number(d.amount) > 0 ? Math.min(100, (paid / Number(d.amount)) * 100) : 0;
+    const due = formatDue(d.due_date);
+    const debtPayments = payments.filter(p => p.debt_id === d.id);
+    const isPayingThis = payingDebtId === d.id;
+    const historyOpen = expandedHistory.has(d.id);
+
+    return (
+      <div key={d.id} className="rounded-xl bg-secondary/20 border border-border overflow-hidden">
+        <div className="flex items-start gap-3 p-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-sm">{d.party}</span>
+              {due && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${due.overdue ? "bg-destructive/10 text-destructive" : "bg-secondary text-muted-foreground"}`}>
+                  {due.overdue ? "overdue · " : ""}{due.label}
+                </span>
+              )}
             </div>
-          );
-        })
-      )}
-    </div>
-  );
+            {d.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{d.description}</p>}
+            {paid > 0 && (
+              <div className="mt-2">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Paid {formatKES(paid)}</span>
+                  <span>{rem > 0 ? `${formatKES(rem)} left` : "fully paid"}</span>
+                </div>
+                <div className="h-1 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${pct}%`,
+                      backgroundColor: pct >= 100 ? "hsl(var(--primary))" : `hsl(var(--primary) / 0.6)`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-shrink-0 text-right">
+            <p className={`text-sm font-semibold tabular-nums ${dir === "owed" ? "text-primary" : ""}`}>
+              {dir === "owed" ? "+" : "−"}{formatKES(rem > 0 ? rem : Number(d.amount))}
+            </p>
+            {paid > 0 && rem > 0 && (
+              <p className="text-xs text-muted-foreground tabular-nums">of {formatKES(Number(d.amount))}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {rem > 0 && (
+              <button
+                onClick={() => {
+                  setPayingDebtId(isPayingThis ? null : d.id);
+                  setPayAmount("");
+                  setPayNote("");
+                }}
+                className="p-1 rounded-md text-muted-foreground hover:text-primary transition text-xs font-medium px-2"
+                title="Record payment"
+              >
+                Pay
+              </button>
+            )}
+            {debtPayments.length > 0 && (
+              <button
+                onClick={() => toggleHistory(d.id)}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground transition"
+                title="Payment history"
+              >
+                {historyOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+              </button>
+            )}
+            <button
+              onClick={() => setDeleteId(d.id)}
+              className="p-1 rounded-md text-muted-foreground hover:text-destructive transition"
+              title="Delete"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Inline pay form */}
+        {isPayingThis && (
+          <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
+            <div className="flex gap-2 mt-3">
+              <input
+                type="number" min={0} step="0.01"
+                value={payAmount}
+                onChange={e => setPayAmount(e.target.value)}
+                placeholder={`Amount (max ${formatKES(rem)})`}
+                className="flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                autoFocus
+              />
+              <input
+                value={payNote}
+                onChange={e => setPayNote(e.target.value)}
+                placeholder="Note (optional)"
+                className="flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+              />
+              <button
+                onClick={() => recordPayment(d)}
+                disabled={savingPay}
+                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary-glow transition disabled:opacity-50"
+              >
+                {savingPay ? "…" : <Check className="size-4" />}
+              </button>
+              <button
+                onClick={() => setPayingDebtId(null)}
+                className="p-1.5 text-muted-foreground hover:text-foreground border border-border rounded-lg transition"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Payment history */}
+        {historyOpen && debtPayments.length > 0 && (
+          <div className="border-t border-border/50 divide-y divide-border/40">
+            {debtPayments.map(p => (
+              <div key={p.id} className="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Check className="size-3 text-primary flex-shrink-0" />
+                  <span>{new Date(p.paid_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  {p.note && <span className="text-muted-foreground/60">· {p.note}</span>}
+                </div>
+                <span className="tabular-nums font-medium text-foreground">{formatKES(Number(p.amount))}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
@@ -184,23 +311,21 @@ const Debts = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">I Owe</h2>
               <button
-                onClick={() => openAdd("owe")}
+                onClick={() => { setForm(emptyForm); setAddDir("owe"); }}
                 className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium"
               >
                 <Plus className="size-4" /> Add
               </button>
             </div>
             {addDir === "owe" && (
-              <AddForm
-                form={form}
-                setForm={setForm}
-                onSave={saveDebt}
-                onCancel={() => setAddDir(null)}
-                saving={saving}
-                label="Who do you owe?"
-              />
+              <AddForm form={form} setForm={setForm} onSave={saveDebt} onCancel={() => setAddDir(null)} saving={saving} label="Who do you owe?" />
             )}
-            <DebtList items={iOwe} dir="owe" />
+            <div className="space-y-2">
+              {iOwe.length === 0
+                ? <p className="text-sm text-muted-foreground py-4 text-center">None yet</p>
+                : iOwe.map(d => renderDebt(d, "owe"))
+              }
+            </div>
           </div>
 
           {/* Owed to Me */}
@@ -208,23 +333,21 @@ const Debts = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Owed to Me</h2>
               <button
-                onClick={() => openAdd("owed")}
+                onClick={() => { setForm(emptyForm); setAddDir("owed"); }}
                 className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium"
               >
                 <Plus className="size-4" /> Add
               </button>
             </div>
             {addDir === "owed" && (
-              <AddForm
-                form={form}
-                setForm={setForm}
-                onSave={saveDebt}
-                onCancel={() => setAddDir(null)}
-                saving={saving}
-                label="Who owes you?"
-              />
+              <AddForm form={form} setForm={setForm} onSave={saveDebt} onCancel={() => setAddDir(null)} saving={saving} label="Who owes you?" />
             )}
-            <DebtList items={owedMe} dir="owed" />
+            <div className="space-y-2">
+              {owedMe.length === 0
+                ? <p className="text-sm text-muted-foreground py-4 text-center">None yet</p>
+                : owedMe.map(d => renderDebt(d, "owed"))
+              }
+            </div>
           </div>
         </div>
       )}
@@ -246,19 +369,12 @@ const Debts = () => {
                     <div className="flex items-center gap-2">
                       <Check className="size-3.5 text-primary flex-shrink-0" />
                       <span className="text-sm line-through">{d.party}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {d.direction === "owe" ? "you owed" : "owed you"}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{d.direction === "owe" ? "you owed" : "owed you"}</span>
                     </div>
                     {d.description && <p className="text-xs text-muted-foreground mt-0.5 ml-5 truncate">{d.description}</p>}
                   </div>
-                  <span className="text-sm tabular-nums text-muted-foreground flex-shrink-0">
-                    {formatKES(Number(d.amount))}
-                  </span>
-                  <button
-                    onClick={() => setDeleteId(d.id)}
-                    className="p-1 text-muted-foreground hover:text-destructive transition flex-shrink-0"
-                  >
+                  <span className="text-sm tabular-nums text-muted-foreground flex-shrink-0">{formatKES(Number(d.amount))}</span>
+                  <button onClick={() => setDeleteId(d.id)} className="p-1 text-muted-foreground hover:text-destructive transition flex-shrink-0">
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
@@ -268,26 +384,11 @@ const Debts = () => {
         </div>
       )}
 
-      {/* Settle confirm */}
-      <AlertDialog open={!!settleId} onOpenChange={open => { if (!open) setSettleId(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Mark as settled?</AlertDialogTitle>
-            <AlertDialogDescription>This marks the debt as paid/received. You can still view it in the settled section.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={settle}>Settle</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete confirm */}
       <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete debt?</AlertDialogTitle>
-            <AlertDialogDescription>This permanently removes the record. This cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>This permanently removes the record and all payment history. This cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
