@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeftRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Download, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -123,6 +123,28 @@ const Transactions = () => {
     load();
   };
 
+  const exportCSV = () => {
+    if (filtered.length === 0) return toast.error("Nothing to export");
+    const headers = tab === "deposits"
+      ? ["Date", "Description", "Source", "Amount (KES)"]
+      : ["Date", "Description", "Category", "Bucket", "Amount (KES)"];
+    const rows = filtered.map(t => {
+      const date = new Date(t.occurred_at).toLocaleDateString("en-KE");
+      const desc = t.description || (tab === "deposits" ? "Payment received" : "Expense");
+      const amount = Number(t.amount).toFixed(2);
+      if (tab === "deposits") return [date, desc, t.source || "", amount];
+      return [date, desc, t.category || "", t.bucket ? BUCKET_META[t.bucket].name : "split", amount];
+    });
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sipe-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const periodBtnClass = (p: Period) =>
     `px-3 py-1.5 rounded-lg text-xs font-medium transition ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
 
@@ -134,6 +156,12 @@ const Transactions = () => {
           <p className="text-muted-foreground mt-1">Every flow, in and out.</p>
         </div>
         <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={exportCSV}
+            className="border border-border text-foreground px-5 py-2.5 rounded-full font-semibold hover:bg-secondary/40 transition flex items-center gap-2"
+          >
+            <Download className="size-4" /> Export
+          </button>
           <button
             onClick={() => setShowTransfer(true)}
             className="border border-border text-foreground px-5 py-2.5 rounded-full font-semibold hover:bg-secondary/40 transition flex items-center gap-2"

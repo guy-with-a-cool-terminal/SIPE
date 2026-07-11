@@ -34,6 +34,8 @@ const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [s, setS] = useState({ savings_pct: 20, invest_pct: 15, pay_pct: 50, expenses_pct: 15 });
   const [limits, setLimits] = useState({ savings_limit: "", invest_limit: "", pay_limit: "", expenses_limit: "" });
+  const [goals, setGoals] = useState({ savings_goal: "", invest_goal: "", pay_goal: "", expenses_goal: "" });
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -129,6 +131,12 @@ const SettingsPage = () => {
           pay_limit:      d.pay_limit      != null ? String(d.pay_limit)      : "",
           expenses_limit: d.expenses_limit != null ? String(d.expenses_limit) : "",
         });
+        setGoals({
+          savings_goal:  d.savings_goal  != null ? String(d.savings_goal)  : "",
+          invest_goal:   d.invest_goal   != null ? String(d.invest_goal)   : "",
+          pay_goal:      d.pay_goal      != null ? String(d.pay_goal)      : "",
+          expenses_goal: d.expenses_goal != null ? String(d.expenses_goal) : "",
+        });
       }
       setName(profRes.data?.full_name || "");
       setLoading(false);
@@ -154,6 +162,10 @@ const SettingsPage = () => {
         invest_limit:   limits.invest_limit   !== "" ? Number(limits.invest_limit)   : null,
         pay_limit:      limits.pay_limit      !== "" ? Number(limits.pay_limit)      : null,
         expenses_limit: limits.expenses_limit !== "" ? Number(limits.expenses_limit) : null,
+        savings_goal:   goals.savings_goal  !== "" ? Number(goals.savings_goal)  : null,
+        invest_goal:    goals.invest_goal   !== "" ? Number(goals.invest_goal)   : null,
+        pay_goal:       goals.pay_goal      !== "" ? Number(goals.pay_goal)      : null,
+        expenses_goal:  goals.expenses_goal !== "" ? Number(goals.expenses_goal) : null,
         updated_at: new Date().toISOString(),
       }),
       supabase.from("profiles").update({ full_name: name }).eq("id", user!.id),
@@ -209,6 +221,29 @@ const SettingsPage = () => {
     { key: "pay_limit",      bucket: "P" },
     { key: "expenses_limit", bucket: "E" },
   ];
+
+  const goalFields: { key: keyof typeof goals; bucket: Bucket }[] = [
+    { key: "savings_goal",  bucket: "S" },
+    { key: "invest_goal",   bucket: "I" },
+    { key: "pay_goal",      bucket: "P" },
+    { key: "expenses_goal", bucket: "E" },
+  ];
+
+  const sendWeeklyEmail = async () => {
+    setSendingEmail(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/weekly-review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({}),
+    });
+    setSendingEmail(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return toast.error(body.error || "Failed to send email");
+    }
+    toast.success("Weekly summary sent to your email");
+  };
 
   if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
@@ -339,9 +374,41 @@ const SettingsPage = () => {
                 </div>
               </section>
 
-              <button onClick={save} disabled={saving || !valid} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary-glow transition disabled:opacity-50 disabled:cursor-not-allowed">
-                {saving ? "Saving…" : "Save allocation"}
-              </button>
+              <section className="glass rounded-2xl p-6">
+                <h2 className="text-base font-semibold mb-1">Savings goals</h2>
+                <p className="text-sm text-muted-foreground mb-5">Set a target balance per bucket. Dashboard shows progress toward each goal.</p>
+                <div className="space-y-4">
+                  {goalFields.map(({ key, bucket }) => {
+                    const meta = BUCKET_META[bucket];
+                    return (
+                      <div key={key} className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 rounded-lg grid place-items-center font-bold text-sm" style={{ backgroundColor: `hsl(${meta.color} / 0.15)`, color: `hsl(${meta.color})` }}>{bucket}</div>
+                          <span className="text-sm font-medium">{meta.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">KES</span>
+                          <input
+                            type="number" min={0} placeholder="no goal"
+                            value={goals[key]}
+                            onChange={(e) => setGoals({ ...goals, [key]: e.target.value })}
+                            className="w-32 text-right bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button onClick={save} disabled={saving || !valid} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary-glow transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  {saving ? "Saving…" : "Save allocation"}
+                </button>
+                <button onClick={sendWeeklyEmail} disabled={sendingEmail} className="border border-border text-foreground px-6 py-3 rounded-full font-semibold hover:bg-secondary/40 transition disabled:opacity-50">
+                  {sendingEmail ? "Sending…" : "Send weekly summary"}
+                </button>
+              </div>
             </>
           )}
 

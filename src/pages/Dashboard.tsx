@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [period, setPeriod] = useState<Period>("all");
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
   const [limits, setLimits] = useState<Partial<Record<Bucket, number>>>({});
+  const [goals, setGoals] = useState<Partial<Record<Bucket, number>>>({});
   const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
   // Which bucket cards are expanded (showing detail)
   const [expandedCards, setExpandedCards] = useState<Set<Bucket>>(new Set());
@@ -55,7 +56,7 @@ const Dashboard = () => {
           .neq("category", "Transfer")
           .gte("occurred_at", monthStart.toISOString()),
         supabase.from("allocation_settings")
-          .select("savings_limit,invest_limit,pay_limit,expenses_limit")
+          .select("savings_limit,invest_limit,pay_limit,expenses_limit,savings_goal,invest_goal,pay_goal,expenses_goal")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("expense_templates")
@@ -92,6 +93,12 @@ const Dashboard = () => {
           I: s.invest_limit   != null ? Number(s.invest_limit)   : undefined,
           P: s.pay_limit      != null ? Number(s.pay_limit)      : undefined,
           E: s.expenses_limit != null ? Number(s.expenses_limit) : undefined,
+        });
+        setGoals({
+          S: s.savings_goal != null ? Number(s.savings_goal) : undefined,
+          I: s.invest_goal  != null ? Number(s.invest_goal)  : undefined,
+          P: s.pay_goal     != null ? Number(s.pay_goal)     : undefined,
+          E: s.expenses_goal != null ? Number(s.expenses_goal) : undefined,
         });
       }
 
@@ -375,9 +382,43 @@ const Dashboard = () => {
                 </p>
               )}
 
+              {/* Savings goal progress */}
+              {goals[b] !== undefined && goals[b]! > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">Goal</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {Math.min(100, Math.round((balance / goals[b]!) * 100))}%
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, (balance / goals[b]!) * 100))}%`,
+                        backgroundColor: balance >= goals[b]! ? "hsl(var(--primary))" : `hsl(${meta.color} / 0.6)`,
+                      }}
+                    />
+                  </div>
+                  {balance >= goals[b]! && (
+                    <p className="mt-1 text-xs text-primary font-medium">Goal reached</p>
+                  )}
+                </div>
+              )}
+
               {/* Expanded detail */}
               {isCardExpanded && (
                 <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs text-muted-foreground">
+                  {goals[b] !== undefined && goals[b]! > 0 && (
+                    <div className="flex justify-between font-medium">
+                      <span className={balance >= goals[b]! ? "text-primary" : ""}>
+                        {balance >= goals[b]! ? "Goal reached" : "Goal target"}
+                      </span>
+                      <span className={`tabular-nums ${balance >= goals[b]! ? "text-primary" : ""}`}>
+                        {formatKES(goals[b]!)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>Spent</span>
                     <span className="text-foreground tabular-nums">{formatKES(spent)}</span>

@@ -24,7 +24,9 @@ npm run test:watch   # Vitest (watch mode)
 supabase functions deploy record-deposit
 supabase functions deploy create-payment-link
 supabase functions deploy paystack-webhook --no-verify-jwt   # public webhook, no JWT
+supabase functions deploy weekly-review
 supabase secrets set PAYSTACK_SECRET_KEY=sk_live_...
+supabase secrets set RESEND_API_KEY=re_...
 ```
 
 ### Local Supabase
@@ -57,6 +59,7 @@ Three edge functions handle all write operations. All accept JSON POST:
 | `record-deposit` | JWT required | Manual income entry → splits into 4 bucket child rows |
 | `create-payment-link` | JWT required | Creates Paystack hosted page, stores in DB |
 | `paystack-webhook` | HMAC only | Receives `charge.success` from Paystack, auto-splits income |
+| `weekly-review` | JWT required | Sends weekly summary email via Resend (`RESEND_API_KEY` secret). Sender: `noreply@cnbcode.dev` |
 
 Webhook URL pattern: `{SUPABASE_URL}/functions/v1/paystack-webhook?uid={user_id}` — user ID in query param avoids email-matching ambiguity; Paystack signature verified via HMAC-SHA512.
 

@@ -20,6 +20,10 @@ export interface AllocationSettings {
   invest_limit:   number | null;
   pay_limit:      number | null;
   expenses_limit: number | null;
+  savings_goal:   number | null;
+  invest_goal:    number | null;
+  pay_goal:       number | null;
+  expenses_goal:  number | null;
 }
 
 export interface ExpenseTemplate {
