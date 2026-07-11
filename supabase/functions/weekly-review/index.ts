@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       </table>
 
       <p style="margin:0;font-size:12px;color:#475569;text-align:center">
-        View full details in your <a href="https://app.sipe.money" style="color:#818cf8;text-decoration:none">SIPE dashboard</a>
+        View full details in your <a href="https://sipe.cnbcode.com" style="color:#818cf8;text-decoration:none">SIPE dashboard</a>
       </p>
     </div>
   </div>
