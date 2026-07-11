@@ -196,13 +196,14 @@ Deno.serve(async (req) => {
 
     if (!resendRes.ok) {
       const err = await resendRes.json().catch(() => ({}));
-      console.error("Resend error:", err);
-      return json({ error: "Failed to send email" }, 500);
+      console.error("Resend error:", JSON.stringify(err));
+      return json({ error: "Resend rejected the request", detail: err }, 500);
     }
 
     return json({ ok: true });
   } catch (err) {
-    console.error(err);
-    return json({ error: "Internal error" }, 500);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("weekly-review error:", msg);
+    return json({ error: msg }, 500);
   }
 });
