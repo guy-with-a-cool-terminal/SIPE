@@ -48,6 +48,14 @@ function buildMonthlyRows(parents: Transaction[], cutoff: Date): MonthlyRow[] {
     .map(([month, g]) => ({ month, ...g }));
 }
 
+function getWeekStart(d: Date): Date {
+  const day = d.getDay();
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
 function fmtAxis(v: number) {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
@@ -175,6 +183,79 @@ const Analytics = () => {
   const otherAmt = sortedSources.slice(5).reduce((s, [, v]) => s + v, 0);
   if (otherAmt > 0) top5.push(["Other", otherAmt]);
   const totalSourceIncome = top5.reduce((s, [, v]) => s + v, 0);
+
+  // ── Weekly habits ────────────────────────────────────────────────────────────
+  const weeklyStats = useMemo(() => {
+    const now = new Date();
+    const thisWeekStart = getWeekStart(now);
+    const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const lastWeekEnd   = thisWeekStart;
+
+    const filterParents = (from: Date, to: Date) =>
+      allParents.filter(r => { const d = new Date(r.occurred_at); return d >= from && d < to; });
+
+    const filterBucket = (from: Date, to: Date) =>
+      allBucketRows.filter(r => {
+        const d = new Date(r.occurred_at);
+        return d >= from && d < to && r.type === "expense" && r.category !== "Transfer";
+      });
+
+    const sumIncome = (rows: Transaction[]) => rows.filter(isRealIncome).reduce((s, r) => s + Number(r.amount), 0);
+    const sumSpend  = (rows: Transaction[]) => rows.filter(isRealExpense).reduce((s, r) => s + Number(r.amount), 0);
+    const byBucket  = (rows: Transaction[]) => {
+      const m: Partial<Record<Bucket, number>> = {};
+      for (const r of rows) { const b = r.bucket as Bucket; m[b] = (m[b] || 0) + Number(r.amount); }
+      return m;
+    };
+
+    const thisRows = filterParents(thisWeekStart, new Date(9999, 0, 1));
+    const lastRows = filterParents(lastWeekStart, lastWeekEnd);
+
+    const twIncome = sumIncome(thisRows);
+    const twSpend  = sumSpend(thisRows);
+    const lwIncome = sumIncome(lastRows);
+    const lwSpend  = sumSpend(lastRows);
+
+    const thisBktSpend = byBucket(filterBucket(thisWeekStart, new Date(9999, 0, 1)));
+    const lastBktSpend = byBucket(filterBucket(lastWeekStart, lastWeekEnd));
+
+    // Top categories this week
+    const catMap = new Map<string, number>();
+    for (const r of allBucketRows) {
+      if (new Date(r.occurred_at) < thisWeekStart || r.type !== "expense" || r.category === "Transfer") continue;
+      const cat = r.category || r.description || "Other";
+      catMap.set(cat, (catMap.get(cat) || 0) + Number(r.amount));
+    }
+    const topCategories = [...catMap.entries()].sort(([, a], [, b]) => b - a).slice(0, 4);
+
+    // Streak: look back week by week from last week (current week is still in progress)
+    let streak = 0;
+    let streakType: "green" | "red" = "green";
+    for (let i = 1; i <= 12; i++) {
+      const wStart = new Date(thisWeekStart); wStart.setDate(wStart.getDate() - i * 7);
+      const wEnd   = new Date(wStart);        wEnd.setDate(wEnd.getDate() + 7);
+      const wRows  = filterParents(wStart, wEnd);
+      if (wRows.length === 0) break;
+      const wSpend  = sumSpend(wRows);
+      const wIncome = sumIncome(wRows);
+      const green   = wSpend <= wIncome;
+      if (i === 1) { streakType = green ? "green" : "red"; streak = 1; }
+      else if ((green && streakType === "green") || (!green && streakType === "red")) streak++;
+      else break;
+    }
+
+    // Projected monthly spend at current week's daily rate
+    const daysIntoWeek = Math.max(1, (now.getTime() - thisWeekStart.getTime()) / 86400000);
+    const projectedMonthly = (twSpend / daysIntoWeek) * 7 * 4.33;
+
+    const thisWeekLabel = (() => {
+      const end = new Date(thisWeekStart); end.setDate(end.getDate() + 6);
+      const fmt = (d: Date) => d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+      return `${fmt(thisWeekStart)} – ${fmt(end)}`;
+    })();
+
+    return { twIncome, twSpend, lwIncome, lwSpend, thisBktSpend, lastBktSpend, topCategories, streak, streakType, projectedMonthly, thisWeekLabel };
+  }, [allParents, allBucketRows]);
 
   const periodBtnClass = (p: AnalyticsPeriod) =>
     `px-3 py-1.5 rounded-lg text-xs font-medium transition ${
@@ -437,6 +518,133 @@ const Analytics = () => {
               </div>
             </div>
           )}
+
+          {/* Weekly habits */}
+          <div className="glass rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-semibold">Weekly habits</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{weeklyStats.thisWeekLabel} · vs last week</p>
+              </div>
+              {weeklyStats.streak >= 2 && (
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                  weeklyStats.streakType === "green"
+                    ? "bg-primary/10 text-primary"
+                    : "bg-destructive/10 text-destructive"
+                }`}>
+                  {weeklyStats.streak}w {weeklyStats.streakType === "green" ? "under budget" : "overspent"}
+                </span>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+
+              {/* This week vs last week */}
+              <div>
+                <div className="grid grid-cols-4 text-xs text-muted-foreground mb-2 px-0.5">
+                  <span></span>
+                  <span className="text-right">This week</span>
+                  <span className="text-right">Last week</span>
+                  <span className="text-right">Change</span>
+                </div>
+                {[
+                  { label: "Income",  thisVal: weeklyStats.twIncome, lastVal: weeklyStats.lwIncome, goodIfUp: true  },
+                  { label: "Spend",   thisVal: weeklyStats.twSpend,  lastVal: weeklyStats.lwSpend,  goodIfUp: false },
+                  { label: "Net",     thisVal: weeklyStats.twIncome - weeklyStats.twSpend, lastVal: weeklyStats.lwIncome - weeklyStats.lwSpend, goodIfUp: true },
+                ].map(({ label, thisVal, lastVal, goodIfUp }) => {
+                  const delta = thisVal - lastVal;
+                  const pct   = lastVal !== 0 ? (delta / Math.abs(lastVal)) * 100 : null;
+                  const good  = goodIfUp ? delta >= 0 : delta <= 0;
+                  return (
+                    <div key={label} className="grid grid-cols-4 items-center py-2 border-b border-border/40 last:border-0 text-sm">
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                      <span className="text-right tabular-nums font-medium">{formatKES(thisVal)}</span>
+                      <span className="text-right tabular-nums text-muted-foreground">{formatKES(lastVal)}</span>
+                      <span className={`text-right text-xs flex items-center justify-end gap-0.5 ${
+                        pct === null ? "text-muted-foreground" : good ? "text-primary" : "text-destructive"
+                      }`}>
+                        {pct !== null && (delta > 0 ? <TrendingUp className="size-3" /> : delta < 0 ? <TrendingDown className="size-3" /> : null)}
+                        {pct !== null ? `${Math.abs(pct).toFixed(0)}%` : "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                <div className="mt-4 p-3 rounded-xl bg-secondary/30">
+                  <p className="text-xs text-muted-foreground">At this week's pace</p>
+                  <p className="text-base font-bold mt-0.5">
+                    {formatKES(weeklyStats.projectedMonthly)}
+                    <span className="text-xs font-normal text-muted-foreground"> / month</span>
+                  </p>
+                  {weeklyStats.lwSpend > 0 && (
+                    <p className={`text-xs mt-1 ${weeklyStats.twSpend <= weeklyStats.lwSpend ? "text-primary" : "text-destructive"}`}>
+                      {weeklyStats.twSpend <= weeklyStats.lwSpend
+                        ? `↓ ${formatKES(weeklyStats.lwSpend - weeklyStats.twSpend)} less than last week`
+                        : `↑ ${formatKES(weeklyStats.twSpend - weeklyStats.lwSpend)} more than last week`}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Bucket deltas + top categories */}
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">Spend by bucket this week</p>
+                  <div className="space-y-2">
+                    {ALL_BUCKETS.map(b => {
+                      const meta = BUCKET_META[b];
+                      const thisAmt = weeklyStats.thisBktSpend[b] || 0;
+                      const lastAmt = weeklyStats.lastBktSpend[b] || 0;
+                      if (thisAmt === 0 && lastAmt === 0) return null;
+                      const delta   = thisAmt - lastAmt;
+                      const pct     = lastAmt > 0 ? (delta / lastAmt) * 100 : null;
+                      const maxAmt  = Math.max(thisAmt, lastAmt, 1);
+                      return (
+                        <div key={b}>
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="size-4 rounded text-xs font-bold grid place-items-center flex-shrink-0"
+                                style={{ backgroundColor: `hsl(${meta.color} / 0.15)`, color: `hsl(${meta.color})` }}>
+                                {b}
+                              </span>
+                              <span className="text-muted-foreground">{meta.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="tabular-nums font-medium">{formatKES(thisAmt)}</span>
+                              {pct !== null && (
+                                <span className={`flex items-center gap-0.5 ${delta <= 0 ? "text-primary" : "text-destructive"}`}>
+                                  {delta <= 0 ? <TrendingDown className="size-3" /> : <TrendingUp className="size-3" />}
+                                  {Math.abs(pct).toFixed(0)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="h-1 rounded-full bg-secondary overflow-hidden">
+                            <div className="h-full rounded-full transition-all"
+                              style={{ width: `${(thisAmt / maxAmt) * 100}%`, backgroundColor: `hsl(${meta.color})` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {weeklyStats.topCategories.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Top categories this week</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {weeklyStats.topCategories.map(([cat, amt]) => (
+                        <span key={cat} className="text-xs px-2 py-1 rounded-full bg-secondary/50">
+                          {cat} <span className="text-muted-foreground">{formatKES(amt)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
         </div>
       )}
