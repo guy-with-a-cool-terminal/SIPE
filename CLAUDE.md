@@ -59,7 +59,7 @@ Three edge functions handle all write operations. All accept JSON POST:
 | `record-deposit` | JWT required | Manual income entry → splits into 4 bucket child rows |
 | `create-payment-link` | JWT required | Creates Paystack hosted page, stores in DB |
 | `paystack-webhook` | HMAC only | Receives `charge.success` from Paystack, auto-splits income |
-| `weekly-review` | JWT required | Sends weekly summary email via Resend (`RESEND_API_KEY` secret). Sender: `noreply@cnbcode.dev` |
+| `weekly-review` | JWT required | Sends weekly summary email via Resend (`RESEND_API_KEY` secret). Sender: `noreply@cnbcode.com` |
 
 Webhook URL pattern: `{SUPABASE_URL}/functions/v1/paystack-webhook?uid={user_id}` — user ID in query param avoids email-matching ambiguity; Paystack signature verified via HMAC-SHA512.
 

@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "SIPE <noreply@cnbcode.dev>",
+        from: "SIPE <noreply@cnbcode.com>",
         to: [userEmail],
         subject: `Your SIPE week: ${range}`,
         html,
