@@ -14,10 +14,10 @@ import {
 } from "@/components/ui/chart";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
-type AnalyticsPeriod = "3m" | "6m" | "12m";
+type AnalyticsPeriod = "week" | "lastweek" | "3m" | "6m" | "12m";
 
-type MonthlyRow = {
-  month: string;
+type ChartRow = {
+  key: string;
   label: string;
   income: number;
   spend: number;
@@ -27,25 +27,46 @@ type MonthlyRow = {
 const isRealIncome  = (r: Transaction) => r.type === "income" && r.bucket === null;
 const isRealExpense = (r: Transaction) => r.type === "expense" && r.category !== "Transfer";
 
-function buildMonthlyRows(parents: Transaction[], cutoff: Date): MonthlyRow[] {
+function buildMonthlyRows(parents: Transaction[], cutoff: Date): ChartRow[] {
   const map = new Map<string, { label: string; income: number; spend: number }>();
   for (const r of parents) {
     const d = new Date(r.occurred_at);
     if (d < cutoff) continue;
-    const month = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
-    if (!map.has(month)) {
-      map.set(month, {
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+    if (!map.has(key)) {
+      map.set(key, {
         label: d.toLocaleDateString("en-KE", { month: "short", year: "numeric" }),
         income: 0, spend: 0,
       });
     }
-    const g = map.get(month)!;
+    const g = map.get(key)!;
     if (isRealIncome(r))  g.income += Number(r.amount);
     if (isRealExpense(r)) g.spend  += Number(r.amount);
   }
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, g]) => ({ month, ...g }));
+    .map(([key, g]) => ({ key, ...g }));
+}
+
+function buildDailyRows(parents: Transaction[], start: Date, end: Date): ChartRow[] {
+  const map = new Map<string, { label: string; income: number; spend: number }>();
+  for (const r of parents) {
+    const d = new Date(r.occurred_at);
+    if (d < start || d >= end) continue;
+    const key = d.toISOString().slice(0, 10);
+    if (!map.has(key)) {
+      map.set(key, {
+        label: d.toLocaleDateString("en-KE", { weekday: "short", day: "numeric" }),
+        income: 0, spend: 0,
+      });
+    }
+    const g = map.get(key)!;
+    if (isRealIncome(r))  g.income += Number(r.amount);
+    if (isRealExpense(r)) g.spend  += Number(r.amount);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, g]) => ({ key, ...g }));
 }
 
 function getWeekStart(d: Date): Date {
@@ -105,26 +126,55 @@ const Analytics = () => {
     })();
   }, [user]);
 
+  const weekBounds = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    thisMonday.setHours(0, 0, 0, 0);
+    const nextMonday = new Date(thisMonday); nextMonday.setDate(thisMonday.getDate() + 7);
+    const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
+    return { thisMonday, nextMonday, lastMonday };
+  }, []);
+
+  const isWeekView = period === "week" || period === "lastweek";
+
   const periodCutoff = useMemo(() => {
+    if (isWeekView) return period === "week" ? weekBounds.thisMonday : weekBounds.lastMonday;
     const d = new Date();
     d.setDate(1); d.setHours(0, 0, 0, 0);
     d.setMonth(d.getMonth() - (period === "3m" ? 3 : period === "6m" ? 6 : 12));
     return d;
-  }, [period]);
+  }, [period, isWeekView, weekBounds]);
 
+  const periodEnd = useMemo(() => {
+    if (period === "week") return weekBounds.nextMonday;
+    if (period === "lastweek") return weekBounds.thisMonday;
+    return null;
+  }, [period, weekBounds]);
+
+  const chartRows = useMemo(() => {
+    if (isWeekView) return buildDailyRows(allParents, periodCutoff, periodEnd!);
+    return buildMonthlyRows(allParents, periodCutoff);
+  }, [allParents, periodCutoff, periodEnd, isWeekView]);
+
+  // Keep monthlyRows for the monthly history table (always monthly)
   const monthlyRows = useMemo(
-    () => buildMonthlyRows(allParents, periodCutoff),
-    [allParents, periodCutoff]
+    () => buildMonthlyRows(allParents, (() => {
+      const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); d.setMonth(d.getMonth() - 6); return d;
+    })()),
+    [allParents]
   );
 
-  const filteredBucketRows = useMemo(
-    () => allBucketRows.filter(r => new Date(r.occurred_at) >= periodCutoff),
-    [allBucketRows, periodCutoff]
-  );
+  const filteredBucketRows = useMemo(() => {
+    const end = periodEnd;
+    return allBucketRows.filter(r => {
+      const d = new Date(r.occurred_at);
+      return d >= periodCutoff && (end === null || d < end);
+    });
+  }, [allBucketRows, periodCutoff, periodEnd]);
 
   // ── Carry-over aware monthly table ───────────────────────────────────────
-  // Work backwards from the current real balance to compute opening/closing per month.
-  // This means "net -4,590 in May" shows correctly as "opened +10,200, closed +5,610".
   const tableRows = useMemo(() => {
     const rows = monthlyRows.slice().reverse().slice(0, 6);
     let running = totalBalance;
@@ -132,7 +182,7 @@ const Analytics = () => {
       const closing = running;
       const opening = closing - row.income + row.spend;
       running = opening;
-      const monthlyDelta = row.income - row.spend; // from this month's transactions only
+      const monthlyDelta = row.income - row.spend;
       return { ...row, opening, closing, monthlyDelta };
     });
   }, [monthlyRows, totalBalance]);
@@ -141,12 +191,11 @@ const Analytics = () => {
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()).padStart(2, "0")}`;
 
-  // Last full month (skip the current partial month for rate display)
-  const lastFullMonthRow = [...tableRows].find(r => r.month !== currentMonthKey);
-  const currentMonthRow  = tableRows.find(r => r.month === currentMonthKey);
+  const lastFullMonthRow = [...tableRows].find(r => r.key !== currentMonthKey);
+  const currentMonthRow  = tableRows.find(r => r.key === currentMonthKey);
 
-  const periodIncome = monthlyRows.reduce((s, r) => s + r.income, 0);
-  const periodSpend  = monthlyRows.reduce((s, r) => s + r.spend, 0);
+  const periodIncome = chartRows.reduce((s, r) => s + r.income, 0);
+  const periodSpend  = chartRows.reduce((s, r) => s + r.spend, 0);
 
   // Trend: last full month delta vs the one before it
   const prevMonthRow = tableRows.filter(r => r.month !== currentMonthKey)[1];
@@ -174,7 +223,9 @@ const Analytics = () => {
   // ── Income sources ─────────────────────────────────────────────────────────
   const sourceMap = new Map<string, number>();
   for (const r of allParents) {
-    if (new Date(r.occurred_at) < periodCutoff || !isRealIncome(r)) continue;
+    const d = new Date(r.occurred_at);
+    if (d < periodCutoff || !isRealIncome(r)) continue;
+    if (periodEnd && d >= periodEnd) continue;
     const key = r.source || r.description || "Other";
     sourceMap.set(key, (sourceMap.get(key) || 0) + Number(r.amount));
   }
@@ -257,6 +308,16 @@ const Analytics = () => {
     return { twIncome, twSpend, lwIncome, lwSpend, thisBktSpend, lastBktSpend, topCategories, streak, streakType, projectedMonthly, thisWeekLabel };
   }, [allParents, allBucketRows]);
 
+  const weekLabel = (() => {
+    const fmt = (d: Date) => d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+    if (period === "week") {
+      const end = new Date(weekBounds.thisMonday); end.setDate(end.getDate() + 6);
+      return `${fmt(weekBounds.thisMonday)} – ${fmt(end)}`;
+    }
+    const end = new Date(weekBounds.lastMonday); end.setDate(end.getDate() + 6);
+    return `${fmt(weekBounds.lastMonday)} – ${fmt(end)}`;
+  })();
+
   const periodBtnClass = (p: AnalyticsPeriod) =>
     `px-3 py-1.5 rounded-lg text-xs font-medium transition ${
       period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -273,14 +334,16 @@ const Analytics = () => {
           <h1 className="text-xl font-bold">Analytics</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Build the habit. Track the proof.</p>
         </div>
-        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl">
-          <button className={periodBtnClass("3m")}  onClick={() => setPeriod("3m")}>3 months</button>
-          <button className={periodBtnClass("6m")}  onClick={() => setPeriod("6m")}>6 months</button>
-          <button className={periodBtnClass("12m")} onClick={() => setPeriod("12m")}>12 months</button>
+        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl flex-wrap">
+          <button className={periodBtnClass("week")}     onClick={() => setPeriod("week")}>This week</button>
+          <button className={periodBtnClass("lastweek")} onClick={() => setPeriod("lastweek")}>Last week</button>
+          <button className={periodBtnClass("3m")}       onClick={() => setPeriod("3m")}>3 months</button>
+          <button className={periodBtnClass("6m")}       onClick={() => setPeriod("6m")}>6 months</button>
+          <button className={periodBtnClass("12m")}      onClick={() => setPeriod("12m")}>12 months</button>
         </div>
       </div>
 
-      {monthlyRows.length === 0 ? (
+      {chartRows.length === 0 ? (
         <div className="glass rounded-xl p-10 text-center text-muted-foreground">
           No transactions in this period yet.
         </div>
@@ -290,47 +353,65 @@ const Analytics = () => {
           {/* KPI cards — 3 across */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-            {/* Last full month summary */}
+            {/* Summary card — week label or last full month */}
             <div className="glass rounded-xl p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
-                {lastFullMonthRow ? lastFullMonthRow.label : "Last month"}
-              </p>
-              {lastFullMonthRow ? (
+              {isWeekView ? (
                 <>
-                  <div className="flex items-end gap-2 mb-2">
-                    <p className={`text-2xl font-bold ${lastFullMonthRow.closing >= 0 ? "" : "text-destructive"}`}>
-                      {formatKES(lastFullMonthRow.closing)}
-                    </p>
-                    <div className={`flex items-center gap-0.5 text-xs mb-0.5 ${balanceTrend >= 0 ? "text-primary" : "text-destructive"}`}>
-                      {balanceTrend >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
-                      {formatKES(Math.abs(balanceTrend))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Opened {formatKES(lastFullMonthRow.opening)} · Earned {formatKES(lastFullMonthRow.income)} · Spent {formatKES(lastFullMonthRow.spend)}
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">{weekLabel}</p>
+                  <p className={`text-2xl font-bold ${periodIncome - periodSpend >= 0 ? "text-primary" : "text-destructive"}`}>
+                    {periodIncome - periodSpend >= 0 ? "+" : ""}{formatKES(periodIncome - periodSpend)}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-2">Net for the week</p>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">No data yet.</p>
+                <>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                    {lastFullMonthRow ? lastFullMonthRow.label : "Last month"}
+                  </p>
+                  {lastFullMonthRow ? (
+                    <>
+                      <div className="flex items-end gap-2 mb-2">
+                        <p className={`text-2xl font-bold ${lastFullMonthRow.closing >= 0 ? "" : "text-destructive"}`}>
+                          {formatKES(lastFullMonthRow.closing)}
+                        </p>
+                        <div className={`flex items-center gap-0.5 text-xs mb-0.5 ${balanceTrend >= 0 ? "text-primary" : "text-destructive"}`}>
+                          {balanceTrend >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+                          {formatKES(Math.abs(balanceTrend))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Opened {formatKES(lastFullMonthRow.opening)} · Earned {formatKES(lastFullMonthRow.income)} · Spent {formatKES(lastFullMonthRow.spend)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No data yet.</p>
+                  )}
+                </>
               )}
             </div>
 
             {/* Period income */}
             <div className="glass rounded-xl p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Earned this period</p>
-              <p className="text-2xl font-bold text-primary">{formatKES(periodIncome)}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                {monthlyRows.length} month{monthlyRows.length !== 1 ? "s" : ""} · avg {formatKES(monthlyRows.length ? periodIncome / monthlyRows.length : 0)}/mo
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                {isWeekView ? "Income this week" : "Earned this period"}
               </p>
+              <p className="text-2xl font-bold text-primary">{formatKES(periodIncome)}</p>
+              {!isWeekView && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {chartRows.length} month{chartRows.length !== 1 ? "s" : ""} · avg {formatKES(chartRows.length ? periodIncome / chartRows.length : 0)}/mo
+                </p>
+              )}
             </div>
 
             {/* Period spend */}
             <div className="glass rounded-xl p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Spent this period</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                {isWeekView ? "Spent this week" : "Spent this period"}
+              </p>
               <p className="text-2xl font-bold">{formatKES(periodSpend)}</p>
               <p className="text-xs text-muted-foreground mt-2">
                 {periodIncome > 0
-                  ? `${((periodSpend / periodIncome) * 100).toFixed(0)}% of income · avg ${formatKES(monthlyRows.length ? periodSpend / monthlyRows.length : 0)}/mo`
+                  ? `${((periodSpend / periodIncome) * 100).toFixed(0)}% of income${!isWeekView ? ` · avg ${formatKES(chartRows.length ? periodSpend / chartRows.length : 0)}/mo` : ""}`
                   : "No income in period"}
               </p>
             </div>
@@ -343,7 +424,7 @@ const Analytics = () => {
               <span className="text-xs text-muted-foreground">Transfers excluded</span>
             </div>
             <ChartContainer config={barConfig} className="h-64 w-full mt-3">
-              <BarChart data={monthlyRows} barGap={3} barCategoryGap="20%" margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
+              <BarChart data={chartRows} barGap={3} barCategoryGap="20%" margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                 <YAxis tickFormatter={fmtAxis} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={44} />
@@ -441,7 +522,7 @@ const Analytics = () => {
             )}
 
             {/* Monthly history with carry-over context */}
-            {tableRows.length > 0 && (
+            {!isWeekView && tableRows.length > 0 && (
               <div className="glass rounded-xl overflow-hidden">
                 <div className="px-4 py-3.5 border-b border-border flex items-center justify-between">
                   <h2 className="text-sm font-semibold">Monthly balance</h2>

@@ -21,10 +21,10 @@ npm run test:watch   # Vitest (watch mode)
 ### Supabase Edge Functions
 
 ```bash
-supabase functions deploy record-deposit
-supabase functions deploy create-payment-link
-supabase functions deploy paystack-webhook --no-verify-jwt   # public webhook, no JWT
-supabase functions deploy weekly-review
+npx supabase functions deploy record-deposit --no-verify-jwt
+npx supabase functions deploy create-payment-link --no-verify-jwt
+npx supabase functions deploy paystack-webhook --no-verify-jwt
+npx supabase functions deploy weekly-review --no-verify-jwt
 supabase secrets set PAYSTACK_SECRET_KEY=sk_live_...
 supabase secrets set RESEND_API_KEY=re_...
 ```
