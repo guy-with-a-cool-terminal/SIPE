@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BUCKET_META, formatKES, type Bucket, type BucketBalance, type ExpenseTemplate } from "@/integrations/supabase/types";
+import { BUCKET_META, formatKES, type Account, type Bucket, type BucketBalance, type ExpenseTemplate } from "@/integrations/supabase/types";
 import { Plus, X, Minus, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +30,8 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
   const [balances, setBalances] = useState<Partial<Record<Bucket, number>>>({});
   const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountId, setAccountId] = useState("");
 
   // Controlled single-mode fields
   const [formAmount, setFormAmount] = useState("");
@@ -43,13 +45,17 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     Promise.all([
       supabase.from("bucket_balances").select("bucket,balance").eq("user_id", userId),
       supabase.from("expense_templates").select("*").eq("user_id", userId).order("name"),
-    ]).then(([balRes, tmplRes]) => {
+      supabase.from("accounts").select("*").eq("user_id", userId).eq("archived", false).order("name"),
+    ]).then(([balRes, tmplRes, acctRes]) => {
       const map: Partial<Record<Bucket, number>> = {};
       (balRes.data as Pick<BucketBalance, "bucket" | "balance">[] | null || []).forEach(r => {
         map[r.bucket as Bucket] = Number(r.balance);
       });
       setBalances(map);
       setTemplates(tmplRes.data || []);
+      const list: Account[] = acctRes.data || [];
+      setAccounts(list);
+      setAccountId(list.find(a => a.is_default)?.id ?? "");
     });
     if (prefill) {
       setSplitMode(false);
@@ -103,6 +109,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     setFormAmount(""); setFormBucket("E"); setFormCategory(""); setFormDescription("");
     setFormDate(new Date().toISOString().slice(0, 10));
     setActiveTemplateId(null);
+    setAccountId("");
     onClose();
   };
 
@@ -131,7 +138,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setSaving(true);
       const { data: parent, error: parentErr } = await supabase
         .from("transactions")
-        .insert({ user_id: userId, type: "expense", bucket: null, amount: total, category, description, occurred_at })
+        .insert({ user_id: userId, type: "expense", bucket: null, amount: total, category, description, occurred_at, account_id: accountId || null })
         .select()
         .single();
       if (parentErr || !parent) { setSaving(false); return toast.error(parentErr?.message || "Failed to create expense"); }
@@ -140,7 +147,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
         .map(r => ({
           user_id: userId, type: "expense" as const, bucket: r.bucket as Bucket,
           amount: Number(r.amount), category, description, occurred_at,
-          parent_id: parent.id,
+          parent_id: parent.id, account_id: accountId || null,
         }));
       const { error: childErr } = await supabase.from("transactions").insert(children);
       setSaving(false);
@@ -151,7 +158,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setSaving(true);
       const { error } = await supabase.from("transactions").insert({
         user_id: userId, type: "expense", bucket: formBucket, amount, category, description, occurred_at,
-        template_id: activeTemplateId,
+        template_id: activeTemplateId, account_id: accountId || null,
       });
       setSaving(false);
       if (error) return toast.error(error.message);
@@ -346,6 +353,19 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
               className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
             />
           </label>
+          {accounts.length > 0 && (
+            <label className="block">
+              <span className="text-sm text-muted-foreground">Account (optional)</span>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
+              >
+                <option value="">— none —</option>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </label>
+          )}
         </div>
 
         <button

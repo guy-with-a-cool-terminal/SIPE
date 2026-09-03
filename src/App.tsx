@@ -17,6 +17,10 @@ import Links from "./pages/Links.tsx";
 import LinkDetail from "./pages/LinkDetail.tsx";
 import Analytics from "./pages/Analytics.tsx";
 import Debts from "./pages/Debts.tsx";
+import Accounts from "./pages/Accounts.tsx";
+import Goals from "./pages/Goals.tsx";
+import WhatsNew from "./pages/WhatsNew.tsx";
+import Admin from "./pages/Admin.tsx";
 
 const queryClient = new QueryClient();
 
@@ -33,12 +37,16 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/accounts" element={<Accounts />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/goals" element={<Goals />} />
               <Route path="/debts" element={<Debts />} />
               <Route path="/links" element={<Links />} />
               <Route path="/links/:id" element={<LinkDetail />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/whats-new" element={<WhatsNew />} />
+              <Route path="/admin" element={<Admin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

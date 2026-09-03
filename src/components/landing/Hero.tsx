@@ -14,7 +14,7 @@ export const Hero = () => (
           <span className="text-gradient">sipe sorts it.</span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-xl leading-relaxed">
-          Every payment that hits your account gets quietly split across four buckets — Savings, Invest, Pay yourself, Expenses — at the percentages you set. No spreadsheets. No guilt. Just intentional money.
+          Every payment that hits your account gets quietly split across four buckets (Savings, Invest, Pay yourself, Expenses) at the percentages you set. No spreadsheets. No guilt. Just intentional money.
         </p>
         <div className="mt-10 flex flex-wrap items-center gap-4">
           <Link to="/register" className="bg-primary text-primary-foreground px-7 py-3.5 rounded-full font-semibold hover:bg-primary-glow transition shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.6)]">

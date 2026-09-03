@@ -10,6 +10,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-paystack-signature",
 };
 
+const BUCKET_ORDER = ["S", "I", "P", "E"] as const;
+
+/** Split `amount` across active buckets; the last active bucket absorbs the rounding remainder. */
+function splitDeposit(amount: number, pcts: Record<string, number>) {
+  const active = BUCKET_ORDER.filter((b) => (pcts[b] ?? 0) > 0);
+  const out: { bucket: string; amount: number }[] = [];
+  let allocated = 0;
+  active.forEach((b, i) => {
+    const amt = i === active.length - 1
+      ? Number((amount - allocated).toFixed(2))
+      : Number((amount * pcts[b] / 100).toFixed(2));
+    allocated += amt;
+    out.push({ bucket: b, amount: amt });
+  });
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -22,7 +39,6 @@ Deno.serve(async (req) => {
     }
 
     // Each user gets a personalised webhook URL with their uid in the query string.
-    // This is how we know which SIPE account to credit — no email matching needed.
     const uid = new URL(req.url).searchParams.get("uid");
     if (!uid) return json({ error: "Missing uid in webhook URL" }, 400);
 
@@ -49,6 +65,11 @@ Deno.serve(async (req) => {
     const { data: settings, error: setErr } = await admin
       .from("allocation_settings").select("*").eq("user_id", uid).maybeSingle();
     if (setErr || !settings) return json({ error: "User not found" }, 404);
+
+    // Route auto-recorded income to the user's default account (may be null).
+    const { data: defaultAccount } = await admin
+      .from("accounts").select("id").eq("user_id", uid).eq("is_default", true).maybeSingle();
+    const accountId: string | null = defaultAccount?.id ?? null;
 
     // Optional: enrich with payment link name if we can find it
     const slug: string | undefined = data.source?.identifier || data.metadata?.payment_page_slug;
@@ -78,35 +99,56 @@ Deno.serve(async (req) => {
       description,
       paystack_ref: reference,
       payment_link_id: paymentLinkId,
+      account_id: accountId,
       source: data.customer?.email || null,
       occurred_at: new Date(data.paid_at || Date.now()).toISOString(),
     }).select().single();
     if (parErr) return json({ error: parErr.message }, 500);
 
-    // 4 allocation rows
-    const splits = [
-      { bucket: "S", pct: settings.savings_pct },
-      { bucket: "I", pct: settings.invest_pct },
-      { bucket: "P", pct: settings.pay_pct },
-      { bucket: "E", pct: settings.expenses_pct },
-    ];
+    // Allocation rows
+    const pcts: Record<string, number> = {
+      S: settings.savings_pct,
+      I: settings.invest_pct,
+      P: settings.pay_pct,
+      E: settings.expenses_pct,
+    };
     const { error: allocErr } = await admin.from("transactions").insert(
-      splits
-        .filter(s => s.pct > 0)
-        .map(s => ({
-          user_id: uid,
-          type: "income" as const,
-          bucket: s.bucket,
-          amount: Number((amountKES * s.pct / 100).toFixed(2)),
-          description: `Allocated to ${s.bucket}`,
-          parent_id: parent.id,
-          payment_link_id: paymentLinkId,
-          occurred_at: parent.occurred_at,
-        }))
+      splitDeposit(amountKES, pcts).map((s) => ({
+        user_id: uid,
+        type: "income" as const,
+        bucket: s.bucket,
+        amount: s.amount,
+        description: `Allocated to ${s.bucket}`,
+        parent_id: parent.id,
+        payment_link_id: paymentLinkId,
+        account_id: accountId,
+        occurred_at: parent.occurred_at,
+      })),
     );
     if (allocErr) return json({ error: allocErr.message }, 500);
 
-    return json({ ok: true, allocated: amountKES });
+    // Auto-contribute to active deposit_pct goals.
+    const { data: goals } = await admin
+      .from("goals")
+      .select("id, deposit_pct")
+      .eq("user_id", uid)
+      .eq("status", "active")
+      .eq("funding", "deposit_pct");
+    const gcRows = (goals ?? [])
+      .filter((g: { deposit_pct: number | null }) => (g.deposit_pct ?? 0) > 0)
+      .map((g: { id: string; deposit_pct: number }) => ({
+        goal_id: g.id,
+        user_id: uid,
+        amount: Number((amountKES * g.deposit_pct / 100).toFixed(2)),
+        note: "Auto from deposit",
+        auto: true,
+        transaction_id: parent.id,
+        occurred_at: parent.occurred_at,
+      }))
+      .filter((r) => r.amount !== 0);
+    if (gcRows.length) await admin.from("goal_contributions").insert(gcRows);
+
+    return json({ ok: true, allocated: amountKES, account_id: accountId });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }

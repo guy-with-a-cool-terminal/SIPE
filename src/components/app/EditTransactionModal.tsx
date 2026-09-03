@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
+import { BUCKET_META, formatKES, type Account, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { X, Info } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +16,16 @@ interface Props {
 
 export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) => {
   const [saving, setSaving] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountId, setAccountId] = useState("");
+
+  useEffect(() => {
+    if (!transaction) return;
+    setAccountId(transaction.account_id ?? "");
+    supabase.from("accounts").select("*").eq("archived", false).order("name").then(({ data }) => {
+      setAccounts(data || []);
+    });
+  }, [transaction]);
 
   if (!transaction) return null;
 
@@ -29,11 +39,14 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
 
     let payload: Record<string, unknown>;
 
+    const account_id = accountId || null;
+
     if (isDeposit) {
       payload = {
         description: String(fd.get("description") || "") || null,
         source: String(fd.get("source") || "") || null,
         category: String(fd.get("category") || "") || null,
+        account_id,
         occurred_at,
       };
     } else if (isSplitParent) {
@@ -42,6 +55,7 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
       payload = {
         amount,
         description: String(fd.get("description") || "") || null,
+        account_id,
         occurred_at,
       };
     } else {
@@ -52,12 +66,17 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
         bucket: fd.get("bucket") as Bucket,
         category: String(fd.get("category") || "") || null,
         description: String(fd.get("description") || "") || null,
+        account_id,
         occurred_at,
       };
     }
 
     setSaving(true);
     const { error } = await supabase.from("transactions").update(payload).eq("id", transaction.id);
+    // Keep split/deposit children tagged to the same account (only parents drive account balances).
+    if (!error && (isDeposit || isSplitParent) && account_id !== (transaction.account_id ?? null)) {
+      await supabase.from("transactions").update({ account_id }).eq("parent_id", transaction.id);
+    }
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Transaction updated");
@@ -162,6 +181,20 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
                 <input name="date" type="date" defaultValue={dateDefault} required className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5" />
               </label>
             </>
+          )}
+
+          {accounts.length > 0 && (
+            <label className="block">
+              <span className="text-sm text-muted-foreground">Account</span>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
+              >
+                <option value="">— none —</option>
+                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </label>
           )}
         </div>
 

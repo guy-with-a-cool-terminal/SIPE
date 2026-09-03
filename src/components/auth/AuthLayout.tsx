@@ -6,7 +6,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: { title: strin
     {/* Left: form */}
     <div className="flex flex-col p-8 md:p-12">
       <Link to="/" className="flex items-center gap-2 w-fit">
-        <div className="size-8 rounded-xl bg-primary/90 grid place-items-center text-primary-foreground font-bold">S</div>
+        <img src="/logo.png" alt="" className="size-9" />
         <span className="font-display text-2xl">sipe</span>
       </Link>
       <div className="flex-1 grid place-items-center py-12">

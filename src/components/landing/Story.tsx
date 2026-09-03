@@ -9,7 +9,7 @@ export const Story = () => (
         and why "saving" never quite happens.
       </p>
       <p className="mt-12 text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-        Lump-sum income breaks every budgeting app built for salaried 9-to-5s. sipe is built the other way around — for irregular income, intentional allocation, zero shame.
+        Lump-sum income breaks every budgeting app built for salaried 9-to-5s. sipe is built the other way around: for irregular income, intentional allocation, zero shame.
       </p>
     </div>
   </section>

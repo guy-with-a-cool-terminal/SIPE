@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BUCKET_META, formatKES, type AllocationSettings, type Bucket, type ExpenseTemplate } from "@/integrations/supabase/types";
@@ -19,14 +20,24 @@ interface PaymentLink {
   created_at: string;
 }
 
-type SettingsTab = "profile" | "allocation" | "bills" | "links" | "integrations";
+type SettingsTab = "profile" | "allocation" | "bills" | "email" | "links" | "integrations";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "profile",      label: "Profile" },
   { key: "allocation",   label: "Allocation" },
   { key: "bills",        label: "Bills" },
+  { key: "email",        label: "Email" },
   { key: "links",        label: "Payment links" },
   { key: "integrations", label: "Integrations" },
+];
+
+type EmailPrefKey = "weekly_review" | "tips" | "announcements" | "goal_updates";
+
+const EMAIL_LISTS: { key: EmailPrefKey; label: string; blurb: string }[] = [
+  { key: "weekly_review", label: "Weekly review",  blurb: "Your Monday money summary: income, spend, buckets, goals." },
+  { key: "tips",          label: "Money tips",     blurb: "One short freelancing-finance tip in the weekly email." },
+  { key: "announcements", label: "Product news",   blurb: "New SIPE features and changes as they ship." },
+  { key: "goal_updates",  label: "Goal updates",   blurb: "Milestones hit and behind-schedule nudges for your goals." },
 ];
 
 const SettingsPage = () => {
@@ -34,8 +45,12 @@ const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [s, setS] = useState({ savings_pct: 20, invest_pct: 15, pay_pct: 50, expenses_pct: 15 });
   const [limits, setLimits] = useState({ savings_limit: "", invest_limit: "", pay_limit: "", expenses_limit: "" });
-  const [goals, setGoals] = useState({ savings_goal: "", invest_goal: "", pay_goal: "", expenses_goal: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailPrefs, setEmailPrefs] = useState<Record<EmailPrefKey, boolean>>({
+    weekly_review: true, tips: true, announcements: true, goal_updates: true,
+  });
+  const [emailPrefsLoaded, setEmailPrefsLoaded] = useState(false);
+  const [savingPref, setSavingPref] = useState<EmailPrefKey | null>(null);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -118,10 +133,19 @@ const SettingsPage = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [setRes, profRes] = await Promise.all([
+      const [setRes, profRes, prefRes] = await Promise.all([
         supabase.from("allocation_settings").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("email_preferences").select("weekly_review,tips,announcements,goal_updates").eq("user_id", user.id).maybeSingle(),
       ]);
+      if (prefRes.data) {
+        const p = prefRes.data as Record<EmailPrefKey, boolean>;
+        setEmailPrefs({
+          weekly_review: p.weekly_review, tips: p.tips,
+          announcements: p.announcements, goal_updates: p.goal_updates,
+        });
+      }
+      setEmailPrefsLoaded(true);
       if (setRes.data) {
         const d = setRes.data as AllocationSettings;
         setS({ savings_pct: d.savings_pct, invest_pct: d.invest_pct, pay_pct: d.pay_pct, expenses_pct: d.expenses_pct });
@@ -130,12 +154,6 @@ const SettingsPage = () => {
           invest_limit:   d.invest_limit   != null ? String(d.invest_limit)   : "",
           pay_limit:      d.pay_limit      != null ? String(d.pay_limit)      : "",
           expenses_limit: d.expenses_limit != null ? String(d.expenses_limit) : "",
-        });
-        setGoals({
-          savings_goal:  d.savings_goal  != null ? String(d.savings_goal)  : "",
-          invest_goal:   d.invest_goal   != null ? String(d.invest_goal)   : "",
-          pay_goal:      d.pay_goal      != null ? String(d.pay_goal)      : "",
-          expenses_goal: d.expenses_goal != null ? String(d.expenses_goal) : "",
         });
       }
       setName(profRes.data?.full_name || "");
@@ -162,10 +180,6 @@ const SettingsPage = () => {
         invest_limit:   limits.invest_limit   !== "" ? Number(limits.invest_limit)   : null,
         pay_limit:      limits.pay_limit      !== "" ? Number(limits.pay_limit)      : null,
         expenses_limit: limits.expenses_limit !== "" ? Number(limits.expenses_limit) : null,
-        savings_goal:   goals.savings_goal  !== "" ? Number(goals.savings_goal)  : null,
-        invest_goal:    goals.invest_goal   !== "" ? Number(goals.invest_goal)   : null,
-        pay_goal:       goals.pay_goal      !== "" ? Number(goals.pay_goal)      : null,
-        expenses_goal:  goals.expenses_goal !== "" ? Number(goals.expenses_goal) : null,
         updated_at: new Date().toISOString(),
       }),
       supabase.from("profiles").update({ full_name: name }).eq("id", user!.id),
@@ -222,12 +236,22 @@ const SettingsPage = () => {
     { key: "expenses_limit", bucket: "E" },
   ];
 
-  const goalFields: { key: keyof typeof goals; bucket: Bucket }[] = [
-    { key: "savings_goal",  bucket: "S" },
-    { key: "invest_goal",   bucket: "I" },
-    { key: "pay_goal",      bucket: "P" },
-    { key: "expenses_goal", bucket: "E" },
-  ];
+  const toggleEmailPref = async (key: EmailPrefKey) => {
+    if (!user) return;
+    const next = { ...emailPrefs, [key]: !emailPrefs[key] };
+    setEmailPrefs(next);
+    setSavingPref(key);
+    const { error } = await supabase.from("email_preferences").upsert({
+      user_id: user.id,
+      ...next,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    setSavingPref(null);
+    if (error) {
+      setEmailPrefs(emailPrefs); // revert
+      toast.error(error.message);
+    }
+  };
 
   const sendWeeklyEmail = async () => {
     setSendingEmail(true);
@@ -376,39 +400,59 @@ const SettingsPage = () => {
 
               <section className="glass rounded-2xl p-6">
                 <h2 className="text-base font-semibold mb-1">Savings goals</h2>
-                <p className="text-sm text-muted-foreground mb-5">Set a target balance per bucket. Dashboard shows progress toward each goal.</p>
-                <div className="space-y-4">
-                  {goalFields.map(({ key, bucket }) => {
-                    const meta = BUCKET_META[bucket];
-                    return (
-                      <div key={key} className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-lg grid place-items-center font-bold text-sm" style={{ backgroundColor: `hsl(${meta.color} / 0.15)`, color: `hsl(${meta.color})` }}>{bucket}</div>
-                          <span className="text-sm font-medium">{meta.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">KES</span>
-                          <input
-                            type="number" min={0} placeholder="no goal"
-                            value={goals[key]}
-                            onChange={(e) => setGoals({ ...goals, [key]: e.target.value })}
-                            className="w-32 text-right bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Goals now live on their own tab, with funding modes, deadlines and completion projections.{" "}
+                  <Link to="/goals" className="text-primary hover:text-primary/80 font-medium">Go to Goals →</Link>
+                </p>
               </section>
 
               <div className="flex flex-wrap items-center gap-3">
                 <button onClick={save} disabled={saving || !valid} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary-glow transition disabled:opacity-50 disabled:cursor-not-allowed">
                   {saving ? "Saving…" : "Save allocation"}
                 </button>
-                <button onClick={sendWeeklyEmail} disabled={sendingEmail} className="border border-border text-foreground px-6 py-3 rounded-full font-semibold hover:bg-secondary/40 transition disabled:opacity-50">
-                  {sendingEmail ? "Sending…" : "Send weekly summary"}
-                </button>
               </div>
+            </>
+          )}
+
+          {/* ── Email ── */}
+          {activeTab === "email" && (
+            <>
+              <section className="glass rounded-2xl p-6">
+                <h2 className="text-base font-semibold mb-1">Email preferences</h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Sent to <span className="text-foreground">{user?.email}</span>. Changes save immediately.
+                </p>
+                <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+                  {EMAIL_LISTS.map(({ key, label, blurb }) => (
+                    <div key={key} className="flex items-start justify-between gap-4 px-4 py-3.5">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{blurb}</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={emailPrefs[key]}
+                        disabled={!emailPrefsLoaded || savingPref === key}
+                        onClick={() => toggleEmailPref(key)}
+                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 mt-0.5 disabled:opacity-50 ${emailPrefs[key] ? "bg-primary" : "bg-secondary"}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform ${emailPrefs[key] ? "translate-x-5" : ""}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="glass rounded-2xl p-6">
+                <h2 className="text-base font-semibold mb-1">Test the weekly review</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Send this week's summary to your inbox right now. Doesn't affect the scheduled Monday send.
+                </p>
+                <button onClick={sendWeeklyEmail} disabled={sendingEmail} className="border border-border text-foreground px-6 py-3 rounded-full font-semibold hover:bg-secondary/40 transition disabled:opacity-50">
+                  {sendingEmail ? "Sending…" : "Send weekly summary now"}
+                </button>
+              </section>
             </>
           )}
 
@@ -534,7 +578,7 @@ const SettingsPage = () => {
                 <div className="bg-secondary/30 rounded-xl p-4 mb-4 space-y-3">
                   <label className="block">
                     <span className="text-xs text-muted-foreground">Name</span>
-                    <input value={newLinkName} onChange={e => setNewLinkName(e.target.value)} placeholder="e.g. Logo design — Acme Co"
+                    <input value={newLinkName} onChange={e => setNewLinkName(e.target.value)} placeholder="e.g. Logo design for Acme Co"
                       className="mt-1 w-full bg-input border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                   </label>
                   <label className="block">
