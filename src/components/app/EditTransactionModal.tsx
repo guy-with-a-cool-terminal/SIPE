@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Account, type Bucket, type Transaction } from "@/integrations/supabase/types";
-import { X, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { dateInputToISO } from "@/lib/dates";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 
@@ -35,7 +37,7 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const occurred_at = new Date(String(fd.get("date") || "")).toISOString();
+    const occurred_at = dateInputToISO(String(fd.get("date") || ""));
 
     let payload: Record<string, unknown>;
 
@@ -87,19 +89,8 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
   const dateDefault = transaction.occurred_at.slice(0, 10);
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form
-        onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
-        className="glass rounded-3xl p-8 w-full max-w-md"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Edit {isDeposit ? "deposit" : "expense"}</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="size-5" />
-          </button>
-        </div>
-
+    <ResponsiveModal open={!!transaction} onClose={onClose} title={`Edit ${isDeposit ? "deposit" : "expense"}`}>
+      <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           {isDeposit ? (
             <>
@@ -206,6 +197,6 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
           {saving ? "Saving…" : "Save changes"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

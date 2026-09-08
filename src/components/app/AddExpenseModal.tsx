@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Account, type Bucket, type BucketBalance, type ExpenseTemplate } from "@/integrations/supabase/types";
-import { Plus, X, Minus, Sparkles, AlertTriangle } from "lucide-react";
+import { Plus, Minus, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { dateInputToISO } from "@/lib/dates";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 
@@ -130,7 +132,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     if (saving) return;
     const category = formCategory || null;
     const description = formDescription || null;
-    const occurred_at = new Date(formDate).toISOString();
+    const occurred_at = dateInputToISO(formDate);
 
     if (splitMode) {
       if (total <= 0) return toast.error("Enter a valid total amount");
@@ -170,19 +172,8 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={handleClose}>
-      <form
-        onSubmit={addExpense}
-        onClick={(e) => e.stopPropagation()}
-        className="glass rounded-3xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Add expense</h3>
-          <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground">
-            <X className="size-5" />
-          </button>
-        </div>
-
+    <ResponsiveModal open={open} onClose={handleClose} title="Add expense">
+      <form onSubmit={addExpense}>
         <div className="space-y-4">
           {/* Quick-add from saved bills */}
           {templates.length > 0 && (
@@ -289,7 +280,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
                   <Plus className="size-3.5" /> Add bucket
                 </button>
                 {total > 0 && (
-                  <p className={`text-xs mt-2 ${splitValid ? "text-green-500" : "text-destructive"}`}>
+                  <p className={`text-xs mt-2 ${splitValid ? "text-primary" : "text-destructive"}`}>
                     Split total: {formatKES(splitSum)} of {formatKES(total)}
                     {splitValid ? " ✓" : ` (${formatKES(Math.abs(total - splitSum))} remaining)`}
                   </p>
@@ -376,6 +367,6 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
           {saving ? "Saving…" : "Add expense"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

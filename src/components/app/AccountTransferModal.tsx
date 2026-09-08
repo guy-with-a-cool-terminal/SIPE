@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { X, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatKES, type Account } from "@/integrations/supabase/types";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { dateInputToISO } from "@/lib/dates";
 
 interface Props {
   open: boolean;
@@ -51,7 +53,7 @@ export const AccountTransferModal = ({ open, onClose, onSaved, userId, accounts 
       amount: amt,
       fee: feeAmt,
       note: note.trim() || null,
-      occurred_at: new Date(date).toISOString(),
+      occurred_at: dateInputToISO(date),
     });
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -63,15 +65,13 @@ export const AccountTransferModal = ({ open, onClose, onSaved, userId, accounts 
   const field = "mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary";
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Record transfer</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-        </div>
-
-        <p className="text-sm text-muted-foreground mb-6">Move cash between two accounts — a platform payout to a bank, bank to M-Pesa, etc.</p>
-
+    <ResponsiveModal
+      open={open}
+      onClose={onClose}
+      title="Record transfer"
+      description="Move cash between two accounts: a platform payout to a bank, bank to M-Pesa, and so on."
+    >
+      <form onSubmit={submit}>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">From</p>
@@ -117,6 +117,6 @@ export const AccountTransferModal = ({ open, onClose, onSaved, userId, accounts 
           {saving ? "Saving…" : "Record transfer"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

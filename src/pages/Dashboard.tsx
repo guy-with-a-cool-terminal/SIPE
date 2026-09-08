@@ -1,15 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Account, type AccountBalance, type Bucket, type BucketBalance, type ExpenseTemplate, type Transaction } from "@/integrations/supabase/types";
 import { reconcileDiff } from "@/lib/accounts";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, Plus, Wallet, X } from "lucide-react";
 import { DepositModal } from "@/components/app/DepositModal";
 import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 type Period = "all" | "week" | "lastmonth" | "month";
+
+const EMPTY_DASHBOARD = {
+  balances: {} as Record<Bucket, BucketBalance>,
+  allRows: [] as Transaction[],
+  recent: [] as Transaction[],
+  monthIncome: 0,
+  monthSpend: 0,
+  limits: {} as Partial<Record<Bucket, number>>,
+  goals: {} as Partial<Record<Bucket, number>>,
+  templates: [] as ExpenseTemplate[],
+  cashByLocation: [] as { name: string; balance: number }[],
+};
 
 function monthKey(date: string) {
   const d = new Date(date);
@@ -22,33 +38,25 @@ function monthLabel(date: string) {
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [balances, setBalances] = useState<Record<Bucket, BucketBalance>>({} as Record<Bucket, BucketBalance>);
-  const [allRows, setAllRows] = useState<Transaction[]>([]);
-  const [recent, setRecent] = useState<Transaction[]>([]);
-  const [monthIncome, setMonthIncome] = useState(0);
-  const [monthSpend, setMonthSpend] = useState(0);
-  const [loading, setLoading] = useState(true);
+  usePageTitle("Dashboard");
+  const queryClient = useQueryClient();
   const [showDeposit, setShowDeposit] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<Period>("all");
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
-  const [limits, setLimits] = useState<Partial<Record<Bucket, number>>>({});
-  const [goals, setGoals] = useState<Partial<Record<Bucket, number>>>({});
-  const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
-  const [cashByLocation, setCashByLocation] = useState<{ name: string; balance: number }[]>([]);
   // Which bucket cards are expanded (showing detail)
   const [expandedCards, setExpandedCards] = useState<Set<Bucket>>(new Set());
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["dashboard", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
       const [balRes, recentRes, monthRes, settingsRes, templatesRes, acctRes, acctBalRes, goalsRes] = await Promise.all([
-        supabase.from("bucket_balances").select("*").eq("user_id", user.id),
+        supabase.from("bucket_balances").select("*").eq("user_id", user!.id),
         supabase.from("transactions")
           .select("*")
           .order("occurred_at", { ascending: false })
@@ -60,71 +68,80 @@ const Dashboard = () => {
           .gte("occurred_at", monthStart.toISOString()),
         supabase.from("allocation_settings")
           .select("savings_limit,invest_limit,pay_limit,expenses_limit")
-          .eq("user_id", user.id)
+          .eq("user_id", user!.id)
           .maybeSingle(),
         supabase.from("expense_templates")
           .select("*")
-          .eq("user_id", user.id),
-        supabase.from("accounts").select("id,name,archived").eq("user_id", user.id),
-        supabase.from("account_balances").select("account_id,balance").eq("user_id", user.id),
-        supabase.from("goals").select("bucket,target_amount").eq("user_id", user.id).eq("funding", "bucket").eq("status", "active"),
+          .eq("user_id", user!.id),
+        supabase.from("accounts").select("id,name,archived").eq("user_id", user!.id),
+        supabase.from("account_balances").select("account_id,balance").eq("user_id", user!.id),
+        supabase.from("goals").select("bucket,target_amount").eq("user_id", user!.id).eq("funding", "bucket").eq("status", "active"),
       ]);
 
-      const map = {} as Record<Bucket, BucketBalance>;
-      ALL_BUCKETS.forEach(b => { map[b] = { user_id: user.id, bucket: b, allocated: 0, spent: 0, balance: 0 }; });
-      (balRes.data || []).forEach((r: BucketBalance) => { map[r.bucket] = r; });
-      setBalances(map);
+      const balances = {} as Record<Bucket, BucketBalance>;
+      ALL_BUCKETS.forEach(b => { balances[b] = { user_id: user!.id, bucket: b, allocated: 0, spent: 0, balance: 0 }; });
+      (balRes.data || []).forEach((r: BucketBalance) => { balances[r.bucket] = r; });
 
-      const fetched: Transaction[] = recentRes.data || [];
-      setAllRows(fetched);
-      const parentRows = fetched.filter(r => r.parent_id === null);
-      setRecent(parentRows);
+      const allRows = (recentRes.data || []) as Transaction[];
+      const recent = allRows.filter(r => r.parent_id === null);
 
-      if (parentRows.length > 0) {
-        setExpanded(new Set([monthKey(parentRows[0].occurred_at)]));
-      }
-
-      let inc = 0, sp = 0;
+      let monthIncome = 0, monthSpend = 0;
       (monthRes.data || []).forEach(r => {
-        if (r.type === "income") inc += Number(r.amount);
-        if (r.type === "expense") sp += Number(r.amount);
+        if (r.type === "income") monthIncome += Number(r.amount);
+        if (r.type === "expense") monthSpend += Number(r.amount);
       });
-      setMonthIncome(inc);
-      setMonthSpend(sp);
 
+      const limits: Partial<Record<Bucket, number>> = {};
       if (settingsRes.data) {
         const s = settingsRes.data;
-        setLimits({
-          S: s.savings_limit  != null ? Number(s.savings_limit)  : undefined,
-          I: s.invest_limit   != null ? Number(s.invest_limit)   : undefined,
-          P: s.pay_limit      != null ? Number(s.pay_limit)      : undefined,
-          E: s.expenses_limit != null ? Number(s.expenses_limit) : undefined,
-        });
+        limits.S = s.savings_limit  != null ? Number(s.savings_limit)  : undefined;
+        limits.I = s.invest_limit   != null ? Number(s.invest_limit)   : undefined;
+        limits.P = s.pay_limit      != null ? Number(s.pay_limit)      : undefined;
+        limits.E = s.expenses_limit != null ? Number(s.expenses_limit) : undefined;
       }
 
       // Bucket goal bars read from the goals table (funding='bucket', active). The bar
       // math below compares the live bucket balance against target_amount.
-      const gmap: Partial<Record<Bucket, number>> = {};
+      const goals: Partial<Record<Bucket, number>> = {};
       ((goalsRes.data as { bucket: Bucket | null; target_amount: number }[] | null) || []).forEach(g => {
-        if (g.bucket) gmap[g.bucket] = Number(g.target_amount);
+        if (g.bucket) goals[g.bucket] = Number(g.target_amount);
       });
-      setGoals(gmap);
-
-      setTemplates(templatesRes.data || []);
 
       const acctBalMap: Record<string, number> = {};
       (acctBalRes.data || []).forEach((r: Pick<AccountBalance, "account_id" | "balance">) => {
         acctBalMap[r.account_id] = Number(r.balance);
       });
-      const cash = ((acctRes.data as Pick<Account, "id" | "name" | "archived">[] | null) || [])
+      const cashByLocation = ((acctRes.data as Pick<Account, "id" | "name" | "archived">[] | null) || [])
         .filter(a => !a.archived)
         .map(a => ({ name: a.name, balance: acctBalMap[a.id] ?? 0 }))
         .sort((x, y) => y.balance - x.balance);
-      setCashByLocation(cash);
 
-      setLoading(false);
-    })();
-  }, [user, reloadKey]);
+      return {
+        balances,
+        allRows,
+        recent,
+        monthIncome,
+        monthSpend,
+        limits,
+        goals,
+        templates: (templatesRes.data || []) as ExpenseTemplate[],
+        cashByLocation,
+      };
+    },
+  });
+
+  const {
+    balances, allRows, recent, monthIncome, monthSpend, limits, goals, templates, cashByLocation,
+  } = data ?? EMPTY_DASHBOARD;
+
+  const reload = () => queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+  // Open the most recent month's transaction group once, on first load.
+  useEffect(() => {
+    if (recent.length > 0) {
+      setExpanded(prev => (prev.size === 0 ? new Set([monthKey(recent[0].occurred_at)]) : prev));
+    }
+  }, [recent]);
 
   const totalBalance = ALL_BUCKETS.reduce((s, b) => s + Number(balances[b]?.balance || 0), 0);
 
@@ -271,27 +288,41 @@ const Dashboard = () => {
     });
 
   const periodBtnClass = (p: Period) =>
-    `px-3 py-1.5 rounded-lg text-xs font-medium transition ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
+    `px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap shrink-0 ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "";
 
-  return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-bold">Welcome back, {firstName}</h1>
-        <button
-          onClick={() => setShowDeposit(true)}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2 text-sm"
-        >
-          <Plus className="size-4" /> Deposit earnings
-        </button>
-      </div>
+  const depositButton = (
+    <button
+      onClick={() => setShowDeposit(true)}
+      className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2 text-sm"
+    >
+      <Plus className="size-4" /> Deposit<span className="hidden sm:inline"> earnings</span>
+    </button>
+  );
 
-      <DepositModal open={showDeposit} onClose={() => setShowDeposit(false)} onSaved={() => setReloadKey(k => k + 1)} />
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+        <PageHeader title={`Welcome back, ${firstName}`} actions={depositButton} />
+        <div className="space-y-5">
+          <CardGridSkeleton count={3} className="grid grid-cols-1 sm:grid-cols-3 gap-3" />
+          <CardGridSkeleton count={4} className="grid grid-cols-2 xl:grid-cols-4 gap-3" />
+          <ListSkeleton rows={5} />
+        </div>
+        <DepositModal open={showDeposit} onClose={() => setShowDeposit(false)} onSaved={reload} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader title={`Welcome back, ${firstName}`} actions={depositButton} />
+
+      <DepositModal open={showDeposit} onClose={() => setShowDeposit(false)} onSaved={reload} />
 
       {/* Period picker */}
-      <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-5">
+      <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit max-w-full overflow-x-auto mb-5">
         <button className={periodBtnClass("all")} onClick={() => setPeriod("all")}>All time</button>
         <button className={periodBtnClass("week")} onClick={() => setPeriod("week")}>This week</button>
         <button className={periodBtnClass("month")} onClick={() => setPeriod("month")}>This month</button>

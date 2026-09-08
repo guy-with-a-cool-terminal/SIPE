@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatKES, type Debt, type DebtPayment } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Check, ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -11,12 +15,12 @@ import {
 
 type Direction = "owe" | "owed";
 const emptyForm = { party: "", description: "", amount: "", due_date: "" };
+const EMPTY_DEBTS = { debts: [] as Debt[], payments: [] as DebtPayment[] };
 
 const Debts = () => {
   const { user } = useAuth();
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [payments, setPayments] = useState<DebtPayment[]>([]);
-  const [loading, setLoading] = useState(true);
+  usePageTitle("Debts");
+  const queryClient = useQueryClient();
   const [showSettled, setShowSettled] = useState(false);
 
   // Add debt form
@@ -35,18 +39,24 @@ const Debts = () => {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const load = async () => {
-    const [debtsRes, paymentsRes] = await Promise.all([
-      supabase.from("debts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
-      supabase.from("debt_payments").select("*").eq("user_id", user!.id).order("paid_at", { ascending: true }),
-    ]);
-    if (debtsRes.error) toast.error(debtsRes.error.message);
-    setDebts(debtsRes.data || []);
-    setPayments(paymentsRes.data || []);
-    setLoading(false);
-  };
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["debts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [debtsRes, paymentsRes] = await Promise.all([
+        supabase.from("debts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+        supabase.from("debt_payments").select("*").eq("user_id", user!.id).order("paid_at", { ascending: true }),
+      ]);
+      if (debtsRes.error) throw debtsRes.error;
+      return {
+        debts: (debtsRes.data || []) as Debt[],
+        payments: (paymentsRes.data || []) as DebtPayment[],
+      };
+    },
+  });
+  const { debts, payments } = data ?? EMPTY_DEBTS;
 
-  useEffect(() => { if (user) load(); }, [user]);
+  const load = () => queryClient.invalidateQueries({ queryKey: ["debts"] });
 
   const paidFor = (debtId: string) =>
     payments.filter(p => p.debt_id === debtId).reduce((s, p) => s + Number(p.amount), 0);
@@ -274,13 +284,8 @@ const Debts = () => {
   };
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Debts</h1>
-          <p className="text-muted-foreground mt-1">What you owe and what's owed to you.</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader title="Debts" subtitle="What you owe and what's owed to you." />
 
       {/* Net summary */}
       {!loading && (iOwe.length > 0 || owedMe.length > 0) && (
@@ -303,7 +308,7 @@ const Debts = () => {
       )}
 
       {loading ? (
-        <div className="glass rounded-2xl p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={4} className="grid md:grid-cols-2 gap-6" />
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {/* I Owe */}

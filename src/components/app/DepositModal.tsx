@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Account } from "@/integrations/supabase/types";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { field, submitButton } from "@/lib/forms";
+import { dateInputToISO } from "@/lib/dates";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -45,7 +47,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
       body: JSON.stringify({
         amount, source, category, note,
         account_id: accountId || undefined,
-        occurred_at: date ? new Date(date).toISOString() : undefined,
+        occurred_at: date ? dateInputToISO(date) : undefined,
       }),
     });
     const body = await res.json();
@@ -57,32 +59,32 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Deposit earnings</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-        </div>
-        <p className="text-sm text-muted-foreground mb-5">Auto-splits into S / I / P / E using your allocation settings.</p>
+    <ResponsiveModal
+      open={open}
+      onClose={onClose}
+      title="Deposit earnings"
+      description="Auto-splits into S / I / P / E using your allocation settings."
+    >
+      <form onSubmit={submit}>
         <div className="space-y-4">
           <label className="block">
             <span className="text-sm text-muted-foreground">Amount (KES)</span>
-            <input name="amount" type="number" step="0.01" required autoFocus className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            <input name="amount" type="number" step="0.01" required autoFocus className={field} />
           </label>
           <label className="block">
             <span className="text-sm text-muted-foreground">Source</span>
-            <input name="source" placeholder="e.g. Client X — Logo design" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            <input name="source" placeholder="e.g. Client X, Logo design" className={field} />
           </label>
           <label className="block">
             <span className="text-sm text-muted-foreground">Category</span>
-            <select name="category" defaultValue="Client work" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5">
+            <select name="category" defaultValue="Client work" className={field}>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
           {accounts.length > 0 && (
             <label className="block">
               <span className="text-sm text-muted-foreground">Account (optional)</span>
-              <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5">
+              <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={field}>
                 <option value="">— none —</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -90,17 +92,17 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
           )}
           <label className="block">
             <span className="text-sm text-muted-foreground">Note (optional)</span>
-            <input name="note" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            <input name="note" className={field} />
           </label>
           <label className="block">
             <span className="text-sm text-muted-foreground">Date</span>
-            <input name="date" type="date" defaultValue={new Date().toISOString().slice(0,10)} className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5" />
+            <input name="date" type="date" defaultValue={new Date().toISOString().slice(0,10)} className={field} />
           </label>
         </div>
-        <button type="submit" disabled={saving} className="mt-6 w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:bg-primary-glow transition disabled:opacity-50">
+        <button type="submit" disabled={saving} className={submitButton}>
           {saving ? "Recording…" : "Record deposit"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

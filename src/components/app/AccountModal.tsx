@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { KIND_META } from "@/lib/accounts";
 import type { Account, AccountKind } from "@/integrations/supabase/types";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { SWATCHES } from "@/lib/swatches";
+import { dateInputToISO } from "@/lib/dates";
 
 const KINDS = Object.keys(KIND_META) as AccountKind[];
-
-const SWATCHES = ["#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#f97316", "#eab308", "#14b8a6", "#64748b"];
 
 interface Props {
   open: boolean;
@@ -64,7 +64,7 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
       provider_slug: providerSlug.trim() || null,
       route_kind: routeKind || null,
       opening_balance: Number(openingBalance) || 0,
-      opening_balance_at: new Date(openingBalanceAt).toISOString(),
+      opening_balance_at: dateInputToISO(openingBalanceAt),
       is_default: isDefault,
       color: color || null,
       notes: notes.trim() || null,
@@ -88,13 +88,8 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
   const field = "mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary";
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">{editing ? "Edit account" : "New account"}</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-        </div>
-
+    <ResponsiveModal open={open} onClose={onClose} title={editing ? "Edit account" : "New account"}>
+      <form onSubmit={submit}>
         <div className="space-y-4">
           <label className="block">
             <span className="text-sm text-muted-foreground">Name</span>
@@ -170,6 +165,6 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
           {saving ? "Saving…" : editing ? "Save changes" : "Create account"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

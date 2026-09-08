@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { ArrowLeftRight, Download, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -14,19 +16,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/app/PageHeader";
+import { ListSkeleton } from "@/components/app/Skeletons";
+import { DataList, type Column } from "@/components/app/DataList";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 import { EditTransactionModal } from "@/components/app/EditTransactionModal";
 import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet";
 import { TransferModal } from "@/components/app/TransferModal";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
+const NO_ROWS: Transaction[] = [];
 type Tab = "deposits" | "expenses";
 type Period = "all" | "week" | "lastmonth" | "month";
 
 const Transactions = () => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  usePageTitle("Transactions");
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("deposits");
   const [q, setQ] = useState("");
   const [bucket, setBucket] = useState<Bucket | "ALL">("ALL");
@@ -41,18 +47,20 @@ const Transactions = () => {
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .order("occurred_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setRows(data || []);
-    setLoading(false);
-  };
+  const { data: rows = NO_ROWS, isLoading: loading } = useQuery({
+    queryKey: ["transactions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("occurred_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Transaction[];
+    },
+  });
 
-  useEffect(() => { if (user) load(); }, [user]);
+  const load = () => queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
   // Sync period → date range
   useEffect(() => {
@@ -146,36 +154,107 @@ const Transactions = () => {
   };
 
   const periodBtnClass = (p: Period) =>
-    `px-3 py-1.5 rounded-lg text-xs font-medium transition ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
+    `px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap shrink-0 ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
+
+  const txnColumns: Column<Transaction>[] = [
+    {
+      header: "Date",
+      cell: (t) => (
+        <span className="text-muted-foreground whitespace-nowrap">
+          {new Date(t.occurred_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+        </span>
+      ),
+    },
+    {
+      header: "Description",
+      cell: (t) => t.description || (tab === "deposits" ? "Payment received" : "Expense"),
+    },
+    {
+      header: tab === "deposits" ? "Source" : "Category",
+      cell: (t) =>
+        t.category === "Transfer" ? (
+          <span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">Transfer</span>
+        ) : (
+          <span className="text-muted-foreground">{tab === "deposits" ? (t.source || "—") : (t.category || "—")}</span>
+        ),
+    },
+    ...(tab === "expenses"
+      ? ([{
+          header: "Bucket",
+          cell: (t: Transaction) =>
+            t.bucket ? (
+              <span
+                className="px-2 py-0.5 rounded-full text-xs"
+                style={{ backgroundColor: `hsl(${BUCKET_META[t.bucket].color} / 0.15)`, color: `hsl(${BUCKET_META[t.bucket].color})` }}
+              >
+                {BUCKET_META[t.bucket].name}
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-xs">split</span>
+            ),
+        }] as Column<Transaction>[])
+      : []),
+    {
+      header: "Amount",
+      align: "right",
+      cell: (t) => (
+        <span className={`font-semibold ${tab === "deposits" ? "text-primary" : ""}`}>
+          {tab === "deposits" ? "+" : "−"}{formatKES(Number(t.amount))}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (t) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); setEditTx(t); }}
+            aria-label="Edit transaction"
+            className="text-muted-foreground hover:text-foreground transition"
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }}
+            aria-label="Delete transaction"
+            className="text-muted-foreground hover:text-destructive transition"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Transactions</h1>
-          <p className="text-muted-foreground mt-1">Every flow, in and out.</p>
-        </div>
-        <div className="flex gap-3 flex-wrap">
-          <button
-            onClick={exportCSV}
-            className="border border-border text-foreground px-5 py-2.5 rounded-full font-semibold hover:bg-secondary/40 transition flex items-center gap-2"
-          >
-            <Download className="size-4" /> Export
-          </button>
-          <button
-            onClick={() => setShowTransfer(true)}
-            className="border border-border text-foreground px-5 py-2.5 rounded-full font-semibold hover:bg-secondary/40 transition flex items-center gap-2"
-          >
-            <ArrowLeftRight className="size-4" /> Transfer
-          </button>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2"
-          >
-            <Plus className="size-4" /> Add expense
-          </button>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader
+        title="Transactions"
+        subtitle="Every flow, in and out."
+        actions={
+          <>
+            <button
+              onClick={exportCSV}
+              className="border border-border text-foreground px-4 py-2 rounded-full font-semibold text-sm hover:bg-secondary/40 transition flex items-center gap-2"
+            >
+              <Download className="size-4" /> <span className="hidden sm:inline">Export</span>
+            </button>
+            <button
+              onClick={() => setShowTransfer(true)}
+              className="border border-border text-foreground px-4 py-2 rounded-full font-semibold text-sm hover:bg-secondary/40 transition flex items-center gap-2"
+            >
+              <ArrowLeftRight className="size-4" /> <span className="hidden sm:inline">Transfer</span>
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold text-sm hover:bg-primary-glow transition flex items-center gap-2"
+            >
+              <Plus className="size-4" /> Add<span className="hidden sm:inline"> expense</span>
+            </button>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-6">
@@ -193,7 +272,7 @@ const Transactions = () => {
       </div>
 
       {/* Period quick-picker */}
-      <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-4">
+      <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit max-w-full overflow-x-auto mb-4">
         <button className={periodBtnClass("all")} onClick={() => setPeriod("all")}>All time</button>
         <button className={periodBtnClass("week")} onClick={() => setPeriod("week")}>This week</button>
         <button className={periodBtnClass("lastmonth")} onClick={() => setPeriod("lastmonth")}>Last month</button>
@@ -201,8 +280,8 @@ const Transactions = () => {
       </div>
 
       {/* Filters */}
-      <div className="glass rounded-2xl p-4 mb-4 grid md:grid-cols-6 gap-3">
-        <div className="relative md:col-span-2">
+      <div className="glass rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+        <div className="relative col-span-2 sm:col-span-3 md:col-span-2">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
@@ -233,7 +312,7 @@ const Transactions = () => {
           onChange={(e) => { setTo(e.target.value); setPeriod("all"); }}
           className="bg-input border border-border rounded-xl px-3 py-2 text-sm"
         />
-        <div className="flex gap-2">
+        <div className="col-span-2 sm:col-span-1 flex gap-2">
           <input type="number" value={minAmt} onChange={(e) => setMinAmt(e.target.value)} placeholder="Min" className="w-1/2 bg-input border border-border rounded-xl px-3 py-2 text-sm" />
           <input type="number" value={maxAmt} onChange={(e) => setMaxAmt(e.target.value)} placeholder="Max" className="w-1/2 bg-input border border-border rounded-xl px-3 py-2 text-sm" />
         </div>
@@ -269,76 +348,64 @@ const Transactions = () => {
       {/* Table */}
       <div className="glass rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-muted-foreground">Loading…</div>
+          <ListSkeleton rows={8} plain />
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-muted-foreground">
             {tab === "deposits" ? "No deposits yet." : "No expenses yet."}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-muted-foreground text-xs uppercase tracking-wider">
-                <tr>
-                  <th className="text-left px-4 py-3">Date</th>
-                  <th className="text-left px-4 py-3">Description</th>
-                  <th className="text-left px-4 py-3">
-                    {tab === "deposits" ? "Source" : "Category"}
-                  </th>
-                  {tab === "expenses" && <th className="text-left px-4 py-3">Bucket</th>}
-                  <th className="text-right px-4 py-3">Amount</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map(t => (
-                  <tr
-                    key={t.id}
-                    onClick={() => setDetailTx(t)}
-                    className="hover:bg-secondary/20 cursor-pointer"
-                  >
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {new Date(t.occurred_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3">
-                      {t.description || (tab === "deposits" ? "Payment received" : "Expense")}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {t.category === "Transfer" ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">Transfer</span>
-                      ) : tab === "deposits" ? (t.source || "—") : (t.category || "—")}
-                    </td>
-                    {tab === "expenses" && (
-                      <td className="px-4 py-3">
-                        {t.bucket
-                          ? <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: `hsl(${BUCKET_META[t.bucket].color} / 0.15)`, color: `hsl(${BUCKET_META[t.bucket].color})` }}>{BUCKET_META[t.bucket].name}</span>
-                          : <span className="text-muted-foreground text-xs">split</span>
-                        }
-                      </td>
+          <DataList
+            rows={filtered}
+            keyOf={(t) => t.id}
+            onRowClick={(t) => setDetailTx(t)}
+            columns={txnColumns}
+            renderCard={(t) => (
+              <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {t.description || (tab === "deposits" ? "Payment received" : "Expense")}
+                  </p>
+                  <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                    <span>{new Date(t.occurred_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    {t.category === "Transfer" ? (
+                      <span className="px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground">Transfer</span>
+                    ) : (tab === "deposits" ? t.source : t.category) ? (
+                      <span>· {tab === "deposits" ? t.source : t.category}</span>
+                    ) : null}
+                    {tab === "expenses" && t.bucket && (
+                      <span
+                        className="px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: `hsl(${BUCKET_META[t.bucket].color} / 0.15)`, color: `hsl(${BUCKET_META[t.bucket].color})` }}
+                      >
+                        {BUCKET_META[t.bucket].name}
+                      </span>
                     )}
-                    <td className={`px-4 py-3 text-right font-semibold ${tab === "deposits" ? "text-primary" : ""}`}>
-                      {tab === "deposits" ? "+" : "−"}{formatKES(Number(t.amount))}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditTx(t); }}
-                          className="text-muted-foreground hover:text-foreground transition"
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }}
-                          className="text-muted-foreground hover:text-destructive transition"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  <span className={`text-sm font-semibold tabular-nums ${tab === "deposits" ? "text-primary" : ""}`}>
+                    {tab === "deposits" ? "+" : "−"}{formatKES(Number(t.amount))}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditTx(t); }}
+                      aria-label="Edit transaction"
+                      className="p-2 -m-1 text-muted-foreground hover:text-foreground transition"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }}
+                      aria-label="Delete transaction"
+                      className="p-2 -m-1 text-muted-foreground hover:text-destructive transition"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          />
         )}
       </div>
 

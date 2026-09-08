@@ -3,6 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { ArrowLeft, Copy, Check, ExternalLink } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ListSkeleton } from "@/components/app/Skeletons";
 
 interface PaymentLink {
   id: string;
@@ -26,6 +29,7 @@ const LinkDetail = () => {
   const [parents, setParents] = useState<TxnWithChildren[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  usePageTitle(link?.name ?? "Payment link");
 
   useEffect(() => {
     if (!id) return;
@@ -52,11 +56,19 @@ const LinkDetail = () => {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
-  if (!link) return <div className="p-10 text-muted-foreground">Link not found.</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10 space-y-6">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <ListSkeleton rows={4} />
+      </div>
+    );
+  }
+  if (!link) return <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-8 text-muted-foreground">Link not found.</div>;
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
       <Link to="/links" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2 mb-6">
         <ArrowLeft className="size-4" /> All links
       </Link>
@@ -64,7 +76,7 @@ const LinkDetail = () => {
       <div className="glass rounded-2xl p-6 md:p-8 mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{link.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{link.name}</h1>
             {link.description && <p className="text-muted-foreground mt-1">{link.description}</p>}
             <p className="text-sm text-muted-foreground mt-3">Charge amount: <span className="text-foreground font-semibold">{formatKES(Number(link.amount))}</span></p>
           </div>
