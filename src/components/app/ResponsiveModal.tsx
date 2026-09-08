@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +15,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
+  DrawerClose,
 } from "@/components/ui/drawer";
 
 interface Props {
@@ -62,13 +64,19 @@ export const ResponsiveModal = ({
             className,
           )}
         >
-          <DrawerHeader className="flex-shrink-0 px-5 pt-2 text-left">
+          <DrawerHeader className="flex-shrink-0 px-5 pt-2 pr-12 text-left">
             <DrawerTitle className="text-lg font-bold">{title}</DrawerTitle>
             {description && (
               <DrawerDescription className="text-sm text-muted-foreground">
                 {description}
               </DrawerDescription>
             )}
+            <DrawerClose
+              aria-label="Close"
+              className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            >
+              <X className="size-5" />
+            </DrawerClose>
           </DrawerHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             {children}

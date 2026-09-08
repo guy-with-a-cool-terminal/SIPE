@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,20 +18,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ListSkeleton } from "@/components/app/Skeletons";
+import { DataList, type Column } from "@/components/app/DataList";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 import { EditTransactionModal } from "@/components/app/EditTransactionModal";
 import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet";
 import { TransferModal } from "@/components/app/TransferModal";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
+const NO_ROWS: Transaction[] = [];
 type Tab = "deposits" | "expenses";
 type Period = "all" | "week" | "lastmonth" | "month";
 
 const Transactions = () => {
   const { user } = useAuth();
   usePageTitle("Transactions");
-  const [rows, setRows] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("deposits");
   const [q, setQ] = useState("");
   const [bucket, setBucket] = useState<Bucket | "ALL">("ALL");
@@ -45,18 +47,20 @@ const Transactions = () => {
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .order("occurred_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setRows(data || []);
-    setLoading(false);
-  };
+  const { data: rows = NO_ROWS, isLoading: loading } = useQuery({
+    queryKey: ["transactions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("occurred_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Transaction[];
+    },
+  });
 
-  useEffect(() => { if (user) load(); }, [user]);
+  const load = () => queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
   // Sync period → date range
   useEffect(() => {
@@ -151,6 +155,77 @@ const Transactions = () => {
 
   const periodBtnClass = (p: Period) =>
     `px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap shrink-0 ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
+
+  const txnColumns: Column<Transaction>[] = [
+    {
+      header: "Date",
+      cell: (t) => (
+        <span className="text-muted-foreground whitespace-nowrap">
+          {new Date(t.occurred_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+        </span>
+      ),
+    },
+    {
+      header: "Description",
+      cell: (t) => t.description || (tab === "deposits" ? "Payment received" : "Expense"),
+    },
+    {
+      header: tab === "deposits" ? "Source" : "Category",
+      cell: (t) =>
+        t.category === "Transfer" ? (
+          <span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">Transfer</span>
+        ) : (
+          <span className="text-muted-foreground">{tab === "deposits" ? (t.source || "—") : (t.category || "—")}</span>
+        ),
+    },
+    ...(tab === "expenses"
+      ? ([{
+          header: "Bucket",
+          cell: (t: Transaction) =>
+            t.bucket ? (
+              <span
+                className="px-2 py-0.5 rounded-full text-xs"
+                style={{ backgroundColor: `hsl(${BUCKET_META[t.bucket].color} / 0.15)`, color: `hsl(${BUCKET_META[t.bucket].color})` }}
+              >
+                {BUCKET_META[t.bucket].name}
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-xs">split</span>
+            ),
+        }] as Column<Transaction>[])
+      : []),
+    {
+      header: "Amount",
+      align: "right",
+      cell: (t) => (
+        <span className={`font-semibold ${tab === "deposits" ? "text-primary" : ""}`}>
+          {tab === "deposits" ? "+" : "−"}{formatKES(Number(t.amount))}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (t) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); setEditTx(t); }}
+            aria-label="Edit transaction"
+            className="text-muted-foreground hover:text-foreground transition"
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }}
+            aria-label="Delete transaction"
+            className="text-muted-foreground hover:text-destructive transition"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
@@ -279,15 +354,13 @@ const Transactions = () => {
             {tab === "deposits" ? "No deposits yet." : "No expenses yet."}
           </div>
         ) : (
-          <>
-          {/* Mobile: card list */}
-          <ul className="md:hidden divide-y divide-border">
-            {filtered.map(t => (
-              <li
-                key={t.id}
-                onClick={() => setDetailTx(t)}
-                className="flex items-start justify-between gap-3 px-4 py-3 active:bg-secondary/20"
-              >
+          <DataList
+            rows={filtered}
+            keyOf={(t) => t.id}
+            onRowClick={(t) => setDetailTx(t)}
+            columns={txnColumns}
+            renderCard={(t) => (
+              <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">
                     {t.description || (tab === "deposits" ? "Payment received" : "Expense")}
@@ -330,76 +403,9 @@ const Transactions = () => {
                     </button>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-
-          {/* Desktop: table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-muted-foreground text-xs uppercase tracking-wider">
-                <tr>
-                  <th className="text-left px-4 py-3">Date</th>
-                  <th className="text-left px-4 py-3">Description</th>
-                  <th className="text-left px-4 py-3">
-                    {tab === "deposits" ? "Source" : "Category"}
-                  </th>
-                  {tab === "expenses" && <th className="text-left px-4 py-3">Bucket</th>}
-                  <th className="text-right px-4 py-3">Amount</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map(t => (
-                  <tr
-                    key={t.id}
-                    onClick={() => setDetailTx(t)}
-                    className="hover:bg-secondary/20 cursor-pointer"
-                  >
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {new Date(t.occurred_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3">
-                      {t.description || (tab === "deposits" ? "Payment received" : "Expense")}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {t.category === "Transfer" ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">Transfer</span>
-                      ) : tab === "deposits" ? (t.source || "—") : (t.category || "—")}
-                    </td>
-                    {tab === "expenses" && (
-                      <td className="px-4 py-3">
-                        {t.bucket
-                          ? <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: `hsl(${BUCKET_META[t.bucket].color} / 0.15)`, color: `hsl(${BUCKET_META[t.bucket].color})` }}>{BUCKET_META[t.bucket].name}</span>
-                          : <span className="text-muted-foreground text-xs">split</span>
-                        }
-                      </td>
-                    )}
-                    <td className={`px-4 py-3 text-right font-semibold ${tab === "deposits" ? "text-primary" : ""}`}>
-                      {tab === "deposits" ? "+" : "−"}{formatKES(Number(t.amount))}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditTx(t); }}
-                          className="text-muted-foreground hover:text-foreground transition"
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }}
-                          className="text-muted-foreground hover:text-destructive transition"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          </>
+              </div>
+            )}
+          />
         )}
       </div>
 

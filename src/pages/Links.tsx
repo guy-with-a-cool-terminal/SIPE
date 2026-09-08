@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -23,40 +24,44 @@ interface PaymentLink {
   created_at: string;
 }
 
+type LinkTotals = Record<string, { count: number; sum: number }>;
+const EMPTY_LINKS = { links: [] as PaymentLink[], totals: {} as LinkTotals };
+
+async function fetchLinks(): Promise<{ links: PaymentLink[]; totals: LinkTotals }> {
+  const { data: ls } = await supabase.from("payment_links").select("*").order("created_at", { ascending: false });
+  const links = (ls || []) as PaymentLink[];
+  const totals: LinkTotals = {};
+  if (links.length) {
+    const ids = links.map(l => l.id);
+    const { data: txns } = await supabase
+      .from("transactions")
+      .select("payment_link_id,amount,parent_id")
+      .in("payment_link_id", ids)
+      .is("parent_id", null);
+    (txns || []).forEach(r => {
+      const k = r.payment_link_id as string;
+      if (!totals[k]) totals[k] = { count: 0, sum: 0 };
+      totals[k].count += 1;
+      totals[k].sum += Number(r.amount);
+    });
+  }
+  return { links, totals };
+}
+
 const Links = () => {
   const { user } = useAuth();
   usePageTitle("Payment links");
-  const [links, setLinks] = useState<PaymentLink[]>([]);
-  const [totals, setTotals] = useState<Record<string, { count: number; sum: number }>>({});
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    const { data: ls } = await supabase.from("payment_links").select("*").order("created_at", { ascending: false });
-    setLinks((ls || []) as PaymentLink[]);
-    if (ls && ls.length) {
-      const ids = ls.map(l => l.id);
-      const { data: txns } = await supabase
-        .from("transactions")
-        .select("payment_link_id,amount,parent_id")
-        .in("payment_link_id", ids)
-        .is("parent_id", null);
-      const t: Record<string, { count: number; sum: number }> = {};
-      (txns || []).forEach(r => {
-        const k = r.payment_link_id as string;
-        if (!t[k]) t[k] = { count: 0, sum: 0 };
-        t[k].count += 1;
-        t[k].sum += Number(r.amount);
-      });
-      setTotals(t);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { if (user) load(); }, [user]);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["payment-links", user?.id],
+    queryFn: fetchLinks,
+    enabled: !!user,
+  });
+  const { links, totals } = data ?? EMPTY_LINKS;
 
   const create = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,7 +84,7 @@ const Links = () => {
     if (!res.ok) return toast.error(body.error || "Failed to create link");
     toast.success("Payment link created");
     setShowNew(false);
-    load();
+    queryClient.invalidateQueries({ queryKey: ["payment-links"] });
   };
 
   const copy = (url: string, id: string) => {

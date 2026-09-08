@@ -321,4 +321,4 @@ Non-negotiable for "production ready":
 | `src/lib/forms.ts` | shipped | the shared `field` class + submit button (§5.2) |
 | `src/lib/swatches.ts` | shipped | the 8-color picker palette (§2.3) |
 | `src/lib/dates.ts` | shipped | `dateInputToISO` — timezone-safe date-input parsing |
-| `src/components/app/DataList.tsx` | proposed | generic table-on-desktop / cards-on-mobile wrapper (§5.5) |
+| `src/components/app/DataList.tsx` | shipped | generic table-on-desktop / cards-on-mobile wrapper (§5.5); Transactions uses it |

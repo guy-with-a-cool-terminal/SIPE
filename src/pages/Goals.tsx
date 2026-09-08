@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -27,48 +28,53 @@ interface Contribution { goal_id: string; amount: number; occurred_at: string }
 const fmtMonth = (d: Date) => d.toLocaleDateString("en-KE", { month: "short", year: "numeric" });
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
 
+const EMPTY_GOALS = {
+  goals: [] as Goal[],
+  progress: {} as Record<string, GoalProgress>,
+  contribs: [] as Contribution[],
+  accountNames: {} as Record<string, string>,
+};
+
 const Goals = () => {
   const { user } = useAuth();
   usePageTitle("Goals");
-  const [loading, setLoading] = useState(true);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [progress, setProgress] = useState<Record<string, GoalProgress>>({});
-  const [contribs, setContribs] = useState<Contribution[]>([]);
-  const [accountNames, setAccountNames] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("active");
-  const [reloadKey, setReloadKey] = useState(0);
 
   const [goalModal, setGoalModal] = useState<{ open: boolean; goal: Goal | null }>({ open: false, goal: null });
   const [contribModal, setContribModal] = useState<{ open: boolean; goal: Goal | null }>({ open: false, goal: null });
   const [deleteGoal, setDeleteGoal] = useState<Goal | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["goals", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
       const [goalsRes, progRes, contribRes, acctRes] = await Promise.all([
-        supabase.from("goals").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
-        supabase.from("goal_progress").select("*").eq("user_id", user.id),
-        supabase.from("goal_contributions").select("goal_id,amount,occurred_at").eq("user_id", user.id).order("occurred_at", { ascending: true }),
-        supabase.from("accounts").select("id,name").eq("user_id", user.id),
+        supabase.from("goals").select("*").eq("user_id", user!.id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+        supabase.from("goal_progress").select("*").eq("user_id", user!.id),
+        supabase.from("goal_contributions").select("goal_id,amount,occurred_at").eq("user_id", user!.id).order("occurred_at", { ascending: true }),
+        supabase.from("accounts").select("id,name").eq("user_id", user!.id),
       ]);
-      if (goalsRes.error) toast.error(goalsRes.error.message);
-      setGoals(goalsRes.data || []);
+      if (goalsRes.error) throw goalsRes.error;
 
-      const pmap: Record<string, GoalProgress> = {};
-      (progRes.data || []).forEach((p: GoalProgress) => { pmap[p.goal_id] = p; });
-      setProgress(pmap);
+      const progress: Record<string, GoalProgress> = {};
+      (progRes.data || []).forEach((p: GoalProgress) => { progress[p.goal_id] = p; });
 
-      setContribs((contribRes.data || []) as Contribution[]);
+      const accountNames: Record<string, string> = {};
+      (acctRes.data || []).forEach((a: { id: string; name: string }) => { accountNames[a.id] = a.name; });
 
-      const amap: Record<string, string> = {};
-      (acctRes.data || []).forEach((a: { id: string; name: string }) => { amap[a.id] = a.name; });
-      setAccountNames(amap);
+      return {
+        goals: (goalsRes.data || []) as Goal[],
+        progress,
+        contribs: (contribRes.data || []) as Contribution[],
+        accountNames,
+      };
+    },
+  });
 
-      setLoading(false);
-    })();
-  }, [user, reloadKey]);
+  const { goals, progress, contribs, accountNames } = data ?? EMPTY_GOALS;
 
-  const reload = () => setReloadKey((k) => k + 1);
+  const reload = () => queryClient.invalidateQueries({ queryKey: ["goals"] });
 
   // If the current filter's tab is hidden (its category emptied out), fall back.
   useEffect(() => {

@@ -111,7 +111,7 @@ Tick these before calling any surface "done". Grouped by area.
 - [ ] Images have explicit `width`/`height` or `aspect-ratio` to avoid layout shift (`logo.png` at `size-8` is fine; check any future ones).
 - [ ] No layout shift when data loads (skeletons reserve space).
 - [ ] Lighthouse: Performance ≥90, Accessibility ≥95, Best Practices 100 on `/dashboard` (throttled mobile).
-- [ ] `react-query` actually used for caching — several pages fetch directly in `useEffect` with a manual `reloadKey`, bypassing the `QueryClient` that's already set up. Not wrong, but inconsistent and misses dedupe/refetch.
+- [x] `react-query` actually used for caching — Dashboard, Transactions, Accounts, Goals, Debts, Links, Analytics now use `useQuery` + `queryClient.invalidateQueries`. Pattern: a module-level `EMPTY_*` default keeps downstream `useMemo` deps referentially stable. `Settings` is the last holdout.
 
 ### 2.6 Trust signals (this is a money app)
 
@@ -169,7 +169,15 @@ Fixed in the 2026-09-08 pass:
 - ~~`text-green-500` in one modal~~ → `text-primary`.
 - ~~`p-7` in one modal, `p-8` in the rest~~ → modal padding centralised in `ResponsiveModal`.
 
-Still open (see PROGRESS.md): unlabeled icon buttons (partial), the `react-query`
-inconsistency, skeletons on the long tail of lists, a visible mobile-drawer close button.
+Also fixed in the follow-up pass:
+
+- ~~The `react-query` inconsistency~~ → 7 of 8 data pages moved to `useQuery` +
+  `invalidateQueries` (Settings, with its 3 independent + lazy loads, is the last one).
+- ~~Skeletons on the long tail of lists~~ → WhatsNew, LinkDetail, Analytics, Settings.
+- ~~No visible mobile-drawer close button~~ → `DrawerClose` in `ResponsiveModal`.
+- Two long-standing `tsc` errors in Analytics fixed as a side effect; `tsc` now clean.
+
+Still open: unlabeled icon buttons (partial); `Settings` fetch migration; the handful of
+pre-existing lint errors (ternary-as-statement, an edge-fn regex escape, tailwind `require`).
 
 None of this was hard. It was a consistency pass, not a redesign.

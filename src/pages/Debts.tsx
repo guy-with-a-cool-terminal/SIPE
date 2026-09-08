@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatKES, type Debt, type DebtPayment } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,13 +15,12 @@ import {
 
 type Direction = "owe" | "owed";
 const emptyForm = { party: "", description: "", amount: "", due_date: "" };
+const EMPTY_DEBTS = { debts: [] as Debt[], payments: [] as DebtPayment[] };
 
 const Debts = () => {
   const { user } = useAuth();
   usePageTitle("Debts");
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [payments, setPayments] = useState<DebtPayment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showSettled, setShowSettled] = useState(false);
 
   // Add debt form
@@ -39,18 +39,24 @@ const Debts = () => {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const load = async () => {
-    const [debtsRes, paymentsRes] = await Promise.all([
-      supabase.from("debts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
-      supabase.from("debt_payments").select("*").eq("user_id", user!.id).order("paid_at", { ascending: true }),
-    ]);
-    if (debtsRes.error) toast.error(debtsRes.error.message);
-    setDebts(debtsRes.data || []);
-    setPayments(paymentsRes.data || []);
-    setLoading(false);
-  };
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["debts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [debtsRes, paymentsRes] = await Promise.all([
+        supabase.from("debts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+        supabase.from("debt_payments").select("*").eq("user_id", user!.id).order("paid_at", { ascending: true }),
+      ]);
+      if (debtsRes.error) throw debtsRes.error;
+      return {
+        debts: (debtsRes.data || []) as Debt[],
+        payments: (paymentsRes.data || []) as DebtPayment[],
+      };
+    },
+  });
+  const { debts, payments } = data ?? EMPTY_DEBTS;
 
-  useEffect(() => { if (user) load(); }, [user]);
+  const load = () => queryClient.invalidateQueries({ queryKey: ["debts"] });
 
   const paidFor = (debtId: string) =>
     payments.filter(p => p.debt_id === debtId).reduce((s, p) => s + Number(p.amount), 0);

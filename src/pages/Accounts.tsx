@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -27,60 +28,65 @@ const ICONS: Record<string, typeof Server> = {
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
 
+const EMPTY_ACCOUNTS = {
+  accounts: [] as Account[],
+  balances: {} as Record<string, AccountBalance>,
+  transfers: [] as AccountTransfer[],
+  lastActivity: {} as Record<string, string>,
+  bucketsTotal: 0,
+};
+
 const Accounts = () => {
   const { user } = useAuth();
   usePageTitle("Accounts");
-  const [loading, setLoading] = useState(true);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [balances, setBalances] = useState<Record<string, AccountBalance>>({});
-  const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
-  const [lastActivity, setLastActivity] = useState<Record<string, string>>({});
-  const [bucketsTotal, setBucketsTotal] = useState(0);
-  const [reloadKey, setReloadKey] = useState(0);
+  const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
 
   const [accountModal, setAccountModal] = useState<{ open: boolean; account: Account | null }>({ open: false, account: null });
   const [transferOpen, setTransferOpen] = useState(false);
   const [adjust, setAdjust] = useState<{ open: boolean; accountId?: string }>({ open: false });
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["accounts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
       const [acctRes, balRes, xferRes, txRes, bktRes] = await Promise.all([
-        supabase.from("accounts").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
-        supabase.from("account_balances").select("*").eq("user_id", user.id),
-        supabase.from("account_transfers").select("*").eq("user_id", user.id).order("occurred_at", { ascending: false }).limit(15),
-        supabase.from("transactions").select("account_id,occurred_at").eq("user_id", user.id).not("account_id", "is", null).order("occurred_at", { ascending: false }).limit(1000),
-        supabase.from("bucket_balances").select("balance").eq("user_id", user.id),
+        supabase.from("accounts").select("*").eq("user_id", user!.id).order("created_at", { ascending: true }),
+        supabase.from("account_balances").select("*").eq("user_id", user!.id),
+        supabase.from("account_transfers").select("*").eq("user_id", user!.id).order("occurred_at", { ascending: false }).limit(15),
+        supabase.from("transactions").select("account_id,occurred_at").eq("user_id", user!.id).not("account_id", "is", null).order("occurred_at", { ascending: false }).limit(1000),
+        supabase.from("bucket_balances").select("balance").eq("user_id", user!.id),
       ]);
+      if (acctRes.error) throw acctRes.error;
 
-      if (acctRes.error) toast.error(acctRes.error.message);
-      setAccounts(acctRes.data || []);
+      const balances: Record<string, AccountBalance> = {};
+      (balRes.data || []).forEach((b: AccountBalance) => { balances[b.account_id] = b; });
 
-      const bmap: Record<string, AccountBalance> = {};
-      (balRes.data || []).forEach((b: AccountBalance) => { bmap[b.account_id] = b; });
-      setBalances(bmap);
+      const transfers: AccountTransfer[] = xferRes.data || [];
 
-      const xfers: AccountTransfer[] = xferRes.data || [];
-      setTransfers(xfers);
-
-      const act: Record<string, string> = {};
+      const lastActivity: Record<string, string> = {};
       (txRes.data || []).forEach((r: { account_id: string; occurred_at: string }) => {
-        if (!act[r.account_id] || r.occurred_at > act[r.account_id]) act[r.account_id] = r.occurred_at;
+        if (!lastActivity[r.account_id] || r.occurred_at > lastActivity[r.account_id]) lastActivity[r.account_id] = r.occurred_at;
       });
-      xfers.forEach((x) => {
+      transfers.forEach((x) => {
         for (const id of [x.from_account_id, x.to_account_id]) {
-          if (!act[id] || x.occurred_at > act[id]) act[id] = x.occurred_at;
+          if (!lastActivity[id] || x.occurred_at > lastActivity[id]) lastActivity[id] = x.occurred_at;
         }
       });
-      setLastActivity(act);
 
-      setBucketsTotal((bktRes.data || []).reduce((s: number, r: { balance: number }) => s + Number(r.balance), 0));
-      setLoading(false);
-    })();
-  }, [user, reloadKey]);
+      return {
+        accounts: (acctRes.data || []) as Account[],
+        balances,
+        transfers,
+        lastActivity,
+        bucketsTotal: (bktRes.data || []).reduce((s: number, r: { balance: number }) => s + Number(r.balance), 0),
+      };
+    },
+  });
 
-  const reload = () => setReloadKey((k) => k + 1);
+  const { accounts, balances, transfers, lastActivity, bucketsTotal } = data ?? EMPTY_ACCOUNTS;
+
+  const reload = () => queryClient.invalidateQueries({ queryKey: ["accounts"] });
 
   const active = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
   const archived = useMemo(() => accounts.filter((a) => a.archived), [accounts]);

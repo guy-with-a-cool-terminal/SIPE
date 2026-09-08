@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -17,6 +20,12 @@ import {
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 type AnalyticsPeriod = "week" | "lastweek" | "3m" | "6m" | "12m";
+
+const EMPTY_ANALYTICS = {
+  allParents: [] as Transaction[],
+  allBucketRows: [] as Transaction[],
+  totalBalance: 0,
+};
 
 type ChartRow = {
   key: string;
@@ -93,15 +102,12 @@ const barConfig: ChartConfig = {
 const Analytics = () => {
   const { user } = useAuth();
   usePageTitle("Analytics");
-  const [allParents, setAllParents] = useState<Transaction[]>([]);
-  const [allBucketRows, setAllBucketRows] = useState<Transaction[]>([]);
-  const [totalBalance, setTotalBalance] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<AnalyticsPeriod>("6m");
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["analytics", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
       const cutoff = new Date();
       cutoff.setMonth(cutoff.getMonth() - 12);
       cutoff.setDate(1);
@@ -117,17 +123,19 @@ const Analytics = () => {
         supabase
           .from("bucket_balances")
           .select("balance")
-          .eq("user_id", user.id),
+          .eq("user_id", user!.id),
       ]);
 
       const rows = (txnRes.data || []) as Transaction[];
-      setAllParents(rows.filter(r => r.parent_id === null));
-      setAllBucketRows(rows.filter(r => r.bucket !== null));
-      const bal = (balRes.data || []).reduce((s, r) => s + Number(r.balance), 0);
-      setTotalBalance(bal);
-      setLoading(false);
-    })();
-  }, [user]);
+      return {
+        allParents: rows.filter(r => r.parent_id === null),
+        allBucketRows: rows.filter(r => r.bucket !== null),
+        totalBalance: (balRes.data || []).reduce((s, r) => s + Number(r.balance), 0),
+      };
+    },
+  });
+
+  const { allParents, allBucketRows, totalBalance } = data ?? EMPTY_ANALYTICS;
 
   const weekBounds = useMemo(() => {
     const now = new Date();
@@ -201,7 +209,7 @@ const Analytics = () => {
   const periodSpend  = chartRows.reduce((s, r) => s + r.spend, 0);
 
   // Trend: last full month delta vs the one before it
-  const prevMonthRow = tableRows.filter(r => r.month !== currentMonthKey)[1];
+  const prevMonthRow = tableRows.filter(r => r.key !== currentMonthKey)[1];
   const lastFullDelta   = lastFullMonthRow?.closing ?? 0;
   const prevDelta       = prevMonthRow?.closing ?? 0;
   const balanceTrend    = lastFullDelta - prevDelta;
@@ -326,7 +334,18 @@ const Analytics = () => {
       period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
     }`;
 
-  if (loading) return <div className="p-10 text-muted-foreground">Loading analytics…</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+        <PageHeader title="Analytics" subtitle="Build the habit. Track the proof." />
+        <div className="space-y-5">
+          <CardGridSkeleton count={2} className="grid sm:grid-cols-2 gap-4" />
+          <Skeleton className="h-72 w-full rounded-xl" />
+          <CardGridSkeleton count={2} className="grid lg:grid-cols-2 gap-5" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
@@ -543,7 +562,7 @@ const Analytics = () => {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {tableRows.map(row => (
-                        <tr key={row.month} className="hover:bg-secondary/10 transition">
+                        <tr key={row.key} className="hover:bg-secondary/10 transition">
                           <td className="px-4 py-2.5 font-medium whitespace-nowrap">{row.label}</td>
                           <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
                             {formatKES(row.opening)}

@@ -7,6 +7,7 @@ import { BUCKET_META, formatKES, type AllocationSettings, type Bucket, type Expe
 import { toast } from "sonner";
 import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -272,7 +273,14 @@ const SettingsPage = () => {
     toast.success("Weekly summary sent to your email");
   };
 
-  if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+        <PageHeader title="Settings" subtitle="Tune your split. Tune your life." />
+        <CardGridSkeleton count={4} className="grid gap-4" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
@@ -600,7 +608,7 @@ const SettingsPage = () => {
 
               {/* Link list */}
               {loadingLinks ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
+                <ListSkeleton rows={3} plain />
               ) : links.length === 0 ? (
                 <div className="text-center py-8">
                   <Link2 className="size-8 mx-auto text-muted-foreground mb-2" />

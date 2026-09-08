@@ -153,9 +153,16 @@ Spec: [../design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md),
   Accounts / Links / Debts swapped bare "Loading…" for shaped skeletons.
 - ✅ Admin users table → card list < sm. Settings mobile tab strip scrolls instead of squishing.
 - ✅ `text-green-500` → `text-primary` in AddExpenseModal.
-- ⬜ Not yet done: loading skeletons on the remaining lists (WhatsNew, LinkDetail, Settings
-  sub-panels); `react-query` adoption for the `useEffect`+`reloadKey` pages; a visible close
-  affordance on mobile drawers (currently drag / tap-out / Esc only). See AVOIDING_AI_VIBES.md Part 4.
+- ✅ Loading skeletons extended to WhatsNew, LinkDetail, Analytics, Settings (+ its links sub-panel).
+- ✅ Visible close button on mobile drawers (`DrawerClose` in `ResponsiveModal`).
+- ✅ `DataList` generic (table ≥ breakpoint / cards below); Transactions migrated to it.
+- ✅ `react-query` adoption: Dashboard, Transactions, Accounts, Goals, Debts, Links, Analytics
+  all moved off `useEffect`+`reloadKey`/`load()` to `useQuery` + `queryClient.invalidateQueries`.
+  Stable module-level empty defaults (`EMPTY_*`) keep downstream `useMemo` deps stable.
+- ✅ Fixed 2 long-standing type errors in Analytics (`row.month` → `row.key`); `tsc` now clean.
+- ⬜ Not yet done: `Settings` still on the old fetch pattern (3 independent loads +
+  tab-triggered lazy load — its own follow-up); the pre-existing lint errors
+  (ternary-as-statement in Dashboard/Debts, edge-fn escape, tailwind `require`).
 
 ---
 

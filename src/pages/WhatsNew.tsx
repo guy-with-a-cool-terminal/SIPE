@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Announcement } from "@/integrations/supabase/types";
 import { Markdown } from "@/components/app/Markdown";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 
 const SEEN_KEY = "sipe:lastSeenAnnouncement";
 
@@ -47,7 +48,7 @@ const WhatsNewPage = () => {
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8">Product updates</h1>
 
       {loading ? (
-        <div className="glass rounded-2xl p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={3} className="space-y-4" />
       ) : items.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center text-muted-foreground">No updates yet.</div>
       ) : (

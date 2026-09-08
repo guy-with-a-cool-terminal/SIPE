@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { ArrowLeft, Copy, Check, ExternalLink } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ListSkeleton } from "@/components/app/Skeletons";
 
 interface PaymentLink {
   id: string;
@@ -54,8 +56,16 @@ const LinkDetail = () => {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
-  if (!link) return <div className="p-10 text-muted-foreground">Link not found.</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10 space-y-6">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <ListSkeleton rows={4} />
+      </div>
+    );
+  }
+  if (!link) return <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-8 text-muted-foreground">Link not found.</div>;
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
