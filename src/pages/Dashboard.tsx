@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BUCKET_META, formatKES, type Bucket, type BucketBalance, type ExpenseTemplate, type Transaction } from "@/integrations/supabase/types";
+import { BUCKET_META, formatKES, type Account, type AccountBalance, type Bucket, type BucketBalance, type ExpenseTemplate, type Transaction } from "@/integrations/supabase/types";
+import { reconcileDiff } from "@/lib/accounts";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, Plus, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, Plus, Wallet, X } from "lucide-react";
 import { DepositModal } from "@/components/app/DepositModal";
 import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet";
 
@@ -34,6 +36,7 @@ const Dashboard = () => {
   const [limits, setLimits] = useState<Partial<Record<Bucket, number>>>({});
   const [goals, setGoals] = useState<Partial<Record<Bucket, number>>>({});
   const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
+  const [cashByLocation, setCashByLocation] = useState<{ name: string; balance: number }[]>([]);
   // Which bucket cards are expanded (showing detail)
   const [expandedCards, setExpandedCards] = useState<Set<Bucket>>(new Set());
 
@@ -44,7 +47,7 @@ const Dashboard = () => {
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
-      const [balRes, recentRes, monthRes, settingsRes, templatesRes] = await Promise.all([
+      const [balRes, recentRes, monthRes, settingsRes, templatesRes, acctRes, acctBalRes, goalsRes] = await Promise.all([
         supabase.from("bucket_balances").select("*").eq("user_id", user.id),
         supabase.from("transactions")
           .select("*")
@@ -56,12 +59,15 @@ const Dashboard = () => {
           .neq("category", "Transfer")
           .gte("occurred_at", monthStart.toISOString()),
         supabase.from("allocation_settings")
-          .select("savings_limit,invest_limit,pay_limit,expenses_limit,savings_goal,invest_goal,pay_goal,expenses_goal")
+          .select("savings_limit,invest_limit,pay_limit,expenses_limit")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("expense_templates")
           .select("*")
           .eq("user_id", user.id),
+        supabase.from("accounts").select("id,name,archived").eq("user_id", user.id),
+        supabase.from("account_balances").select("account_id,balance").eq("user_id", user.id),
+        supabase.from("goals").select("bucket,target_amount").eq("user_id", user.id).eq("funding", "bucket").eq("status", "active"),
       ]);
 
       const map = {} as Record<Bucket, BucketBalance>;
@@ -94,21 +100,37 @@ const Dashboard = () => {
           P: s.pay_limit      != null ? Number(s.pay_limit)      : undefined,
           E: s.expenses_limit != null ? Number(s.expenses_limit) : undefined,
         });
-        setGoals({
-          S: s.savings_goal != null ? Number(s.savings_goal) : undefined,
-          I: s.invest_goal  != null ? Number(s.invest_goal)  : undefined,
-          P: s.pay_goal     != null ? Number(s.pay_goal)     : undefined,
-          E: s.expenses_goal != null ? Number(s.expenses_goal) : undefined,
-        });
       }
 
+      // Bucket goal bars read from the goals table (funding='bucket', active). The bar
+      // math below compares the live bucket balance against target_amount.
+      const gmap: Partial<Record<Bucket, number>> = {};
+      ((goalsRes.data as { bucket: Bucket | null; target_amount: number }[] | null) || []).forEach(g => {
+        if (g.bucket) gmap[g.bucket] = Number(g.target_amount);
+      });
+      setGoals(gmap);
+
       setTemplates(templatesRes.data || []);
+
+      const acctBalMap: Record<string, number> = {};
+      (acctBalRes.data || []).forEach((r: Pick<AccountBalance, "account_id" | "balance">) => {
+        acctBalMap[r.account_id] = Number(r.balance);
+      });
+      const cash = ((acctRes.data as Pick<Account, "id" | "name" | "archived">[] | null) || [])
+        .filter(a => !a.archived)
+        .map(a => ({ name: a.name, balance: acctBalMap[a.id] ?? 0 }))
+        .sort((x, y) => y.balance - x.balance);
+      setCashByLocation(cash);
 
       setLoading(false);
     })();
   }, [user, reloadKey]);
 
   const totalBalance = ALL_BUCKETS.reduce((s, b) => s + Number(balances[b]?.balance || 0), 0);
+
+  const cashTotal = cashByLocation.reduce((s, c) => s + c.balance, 0);
+  const cashDiff = reconcileDiff(cashTotal, totalBalance);
+  const cashUnreconciled = Math.abs(cashDiff) > 1;
 
   // Total committed bills per bucket (ignoring payments)
   const committed = useMemo(() => {
@@ -312,6 +334,38 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Cash by location */}
+      {cashByLocation.length > 0 && (
+        <div className="glass rounded-xl p-4 mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
+              <Wallet className="size-3" /> Cash by location
+            </div>
+            <Link to="/accounts" className="text-xs text-primary hover:text-primary/80 font-medium">Manage →</Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {cashByLocation.slice(0, 4).map((c) => (
+              <div key={c.name}>
+                <p className="text-xs text-muted-foreground truncate">{c.name}</p>
+                <p className={`text-sm font-semibold tabular-nums ${c.balance < 0 ? "text-destructive" : ""}`}>{formatKES(c.balance)}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-2 text-xs flex-wrap">
+            <span className="tabular-nums">Accounts {formatKES(cashTotal)}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="tabular-nums">Buckets {formatKES(totalBalance)}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className={`tabular-nums font-semibold ${cashUnreconciled ? "text-destructive" : "text-primary"}`}>
+              Δ {cashDiff > 0 ? "+" : cashDiff < 0 ? "−" : ""}{formatKES(Math.abs(cashDiff))}
+            </span>
+            {cashUnreconciled && (
+              <Link to="/accounts" className="text-primary hover:text-primary/80 font-medium ml-auto">Reconcile</Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bucket cards — always 4-wide on desktop */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-8">

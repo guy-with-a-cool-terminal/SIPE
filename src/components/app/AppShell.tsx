@@ -1,18 +1,24 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowLeftRight, BarChart3, Landmark, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, BarChart3, Landmark, Settings, LogOut, ChevronLeft, ChevronRight, Wallet, Target, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/lib/admin";
+import { NotificationsBell } from "./NotificationsBell";
+import { WhatsNew } from "./WhatsNew";
 
 const links = [
   { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
+  { to: "/accounts",     label: "Accounts",     icon: Wallet },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/analytics",   label: "Analytics",    icon: BarChart3 },
+  { to: "/goals",       label: "Goals",        icon: Target },
   { to: "/debts",       label: "Debts",        icon: Landmark },
   { to: "/settings",    label: "Settings",     icon: Settings },
 ];
 
 export const AppShell = () => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem("sidebar-collapsed") === "1"
@@ -34,7 +40,7 @@ export const AppShell = () => {
         {/* Logo row */}
         <div className={`flex items-center gap-2 border-b border-border ${collapsed ? "justify-center py-4 px-0" : "px-5 py-4"}`}>
           <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
-            <div className="size-7 rounded-lg bg-primary/90 grid place-items-center text-primary-foreground font-bold text-sm flex-shrink-0">S</div>
+            <img src="/logo.png" alt="" className="size-8 flex-shrink-0" />
             {!collapsed && <span className="font-bold truncate">sipe</span>}
           </Link>
           {!collapsed && (
@@ -83,9 +89,27 @@ export const AppShell = () => {
         </nav>
 
         {/* Footer */}
-        <div className={`border-t border-border ${collapsed ? "px-2 py-4 flex justify-center" : "px-5 py-4"}`}>
+        <div className={`border-t border-border ${collapsed ? "px-2 py-4 flex flex-col items-center gap-3" : "px-5 py-4"}`}>
           {!collapsed && (
-            <p className="text-xs text-muted-foreground truncate mb-3">{user?.email}</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              <NotificationsBell align="left" direction="up" />
+            </div>
+          )}
+          {collapsed && <NotificationsBell align="left" direction="up" />}
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              title={collapsed ? "Admin" : undefined}
+              className={({ isActive }) =>
+                `flex items-center gap-2 text-sm transition mb-2 ${collapsed ? "justify-center" : ""} ${
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`
+              }
+            >
+              <ShieldCheck className="size-4" />
+              {!collapsed && "Admin"}
+            </NavLink>
           )}
           <button
             onClick={async () => { await signOut(); navigate("/"); }}
@@ -104,10 +128,10 @@ export const AppShell = () => {
         {/* Mobile header */}
         <div className="md:hidden flex items-center justify-between border-b border-border px-4 py-3">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="size-7 rounded-lg bg-primary/90 grid place-items-center text-primary-foreground font-bold text-sm">S</div>
+            <img src="/logo.png" alt="" className="size-8" />
             <span className="font-bold">sipe</span>
           </Link>
-          <div className="flex gap-4 text-sm">
+          <div className="flex items-center gap-4 text-sm">
             {links.map(({ to, label }) => (
               <NavLink
                 key={to}
@@ -117,8 +141,10 @@ export const AppShell = () => {
                 {label}
               </NavLink>
             ))}
+            <NotificationsBell align="right" direction="down" />
           </div>
         </div>
+        <WhatsNew />
         <Outlet />
       </main>
     </div>

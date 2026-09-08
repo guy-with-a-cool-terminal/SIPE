@@ -4,7 +4,7 @@ export const Nav = () => (
   <nav className="fixed top-0 inset-x-0 z-50">
     <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
       <Link to="/" className="flex items-center gap-2">
-        <div className="size-8 rounded-xl bg-primary/90 grid place-items-center text-primary-foreground font-bold">S</div>
+        <img src="/logo.png" alt="" className="size-9" />
         <span className="font-display text-2xl">sipe</span>
       </Link>
       <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Account } from "@/integrations/supabase/types";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -9,6 +10,18 @@ const CATEGORIES = ["Client work", "Retainer", "Product sale", "Consulting", "Re
 
 export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved?: () => void }) => {
   const [saving, setSaving] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountId, setAccountId] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("accounts").select("*").eq("archived", false).order("name").then(({ data }) => {
+      const list: Account[] = data || [];
+      setAccounts(list);
+      setAccountId(list.find((a) => a.is_default)?.id ?? "");
+    });
+  }, [open]);
+
   if (!open) return null;
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -31,6 +44,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         amount, source, category, note,
+        account_id: accountId || undefined,
         occurred_at: date ? new Date(date).toISOString() : undefined,
       }),
     });
@@ -65,6 +79,15 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
+          {accounts.length > 0 && (
+            <label className="block">
+              <span className="text-sm text-muted-foreground">Account (optional)</span>
+              <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5">
+                <option value="">— none —</option>
+                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </label>
+          )}
           <label className="block">
             <span className="text-sm text-muted-foreground">Note (optional)</span>
             <input name="note" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
