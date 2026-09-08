@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -90,6 +92,7 @@ const barConfig: ChartConfig = {
 
 const Analytics = () => {
   const { user } = useAuth();
+  usePageTitle("Analytics");
   const [allParents, setAllParents] = useState<Transaction[]>([]);
   const [allBucketRows, setAllBucketRows] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
@@ -319,29 +322,28 @@ const Analytics = () => {
   })();
 
   const periodBtnClass = (p: AnalyticsPeriod) =>
-    `px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+    `px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap shrink-0 ${
       period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
     }`;
 
   if (loading) return <div className="p-10 text-muted-foreground">Loading analytics…</div>;
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
 
-      {/* Header + period picker inline */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl font-bold">Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Build the habit. Track the proof.</p>
-        </div>
-        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl flex-wrap">
-          <button className={periodBtnClass("week")}     onClick={() => setPeriod("week")}>This week</button>
-          <button className={periodBtnClass("lastweek")} onClick={() => setPeriod("lastweek")}>Last week</button>
-          <button className={periodBtnClass("3m")}       onClick={() => setPeriod("3m")}>3 months</button>
-          <button className={periodBtnClass("6m")}       onClick={() => setPeriod("6m")}>6 months</button>
-          <button className={periodBtnClass("12m")}      onClick={() => setPeriod("12m")}>12 months</button>
-        </div>
-      </div>
+      <PageHeader
+        title="Analytics"
+        subtitle="Build the habit. Track the proof."
+        actions={
+          <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl max-w-full overflow-x-auto">
+            <button className={periodBtnClass("week")}     onClick={() => setPeriod("week")}>This week</button>
+            <button className={periodBtnClass("lastweek")} onClick={() => setPeriod("lastweek")}>Last week</button>
+            <button className={periodBtnClass("3m")}       onClick={() => setPeriod("3m")}>3 months</button>
+            <button className={periodBtnClass("6m")}       onClick={() => setPeriod("6m")}>6 months</button>
+            <button className={periodBtnClass("12m")}      onClick={() => setPeriod("12m")}>12 months</button>
+          </div>
+        }
+      />
 
       {chartRows.length === 0 ? (
         <div className="glass rounded-xl p-10 text-center text-muted-foreground">
@@ -437,8 +439,8 @@ const Analytics = () => {
                   }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} barSize={28} />
-                <Bar dataKey="spend"  fill="var(--color-spend)"  radius={[4, 4, 0, 0]} barSize={28} />
+                <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="spend"  fill="var(--color-spend)"  radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ChartContainer>
           </div>
@@ -450,7 +452,7 @@ const Analytics = () => {
             {totalBucketSpend > 0 ? (
               <div className="glass rounded-xl p-5">
                 <h2 className="text-sm font-semibold mb-4">Spending by bucket</h2>
-                <div className="flex items-center gap-5">
+                <div className="flex flex-col items-center gap-5 sm:flex-row">
                   {/* Donut */}
                   <div className="flex-shrink-0 w-36">
                     <ChartContainer config={{}} className="h-36 w-full">

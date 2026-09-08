@@ -4,9 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Account, type AccountBalance, type Bucket, type BucketBalance, type ExpenseTemplate, type Transaction } from "@/integrations/supabase/types";
 import { reconcileDiff } from "@/lib/accounts";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, Plus, Wallet, X } from "lucide-react";
 import { DepositModal } from "@/components/app/DepositModal";
 import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 type Period = "all" | "week" | "lastmonth" | "month";
@@ -22,6 +25,7 @@ function monthLabel(date: string) {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  usePageTitle("Dashboard");
   const [balances, setBalances] = useState<Record<Bucket, BucketBalance>>({} as Record<Bucket, BucketBalance>);
   const [allRows, setAllRows] = useState<Transaction[]>([]);
   const [recent, setRecent] = useState<Transaction[]>([]);
@@ -271,27 +275,41 @@ const Dashboard = () => {
     });
 
   const periodBtnClass = (p: Period) =>
-    `px-3 py-1.5 rounded-lg text-xs font-medium transition ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
+    `px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap shrink-0 ${period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "";
 
-  return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-bold">Welcome back, {firstName}</h1>
-        <button
-          onClick={() => setShowDeposit(true)}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2 text-sm"
-        >
-          <Plus className="size-4" /> Deposit earnings
-        </button>
+  const depositButton = (
+    <button
+      onClick={() => setShowDeposit(true)}
+      className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2 text-sm"
+    >
+      <Plus className="size-4" /> Deposit<span className="hidden sm:inline"> earnings</span>
+    </button>
+  );
+
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+        <PageHeader title={`Welcome back, ${firstName}`} actions={depositButton} />
+        <div className="space-y-5">
+          <CardGridSkeleton count={3} className="grid grid-cols-1 sm:grid-cols-3 gap-3" />
+          <CardGridSkeleton count={4} className="grid grid-cols-2 xl:grid-cols-4 gap-3" />
+          <ListSkeleton rows={5} />
+        </div>
+        <DepositModal open={showDeposit} onClose={() => setShowDeposit(false)} onSaved={() => setReloadKey(k => k + 1)} />
       </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader title={`Welcome back, ${firstName}`} actions={depositButton} />
 
       <DepositModal open={showDeposit} onClose={() => setShowDeposit(false)} onSaved={() => setReloadKey(k => k + 1)} />
 
       {/* Period picker */}
-      <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-5">
+      <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit max-w-full overflow-x-auto mb-5">
         <button className={periodBtnClass("all")} onClick={() => setPeriod("all")}>All time</button>
         <button className={periodBtnClass("week")} onClick={() => setPeriod("week")}>This week</button>
         <button className={periodBtnClass("month")} onClick={() => setPeriod("month")}>This month</button>

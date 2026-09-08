@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { formatKES } from "@/integrations/supabase/types";
-import { Plus, X, Copy, Check, ExternalLink, Link2 } from "lucide-react";
+import { Plus, Copy, Check, ExternalLink, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { ResponsiveModal } from "@/components/app/ResponsiveModal";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -21,6 +25,7 @@ interface PaymentLink {
 
 const Links = () => {
   const { user } = useAuth();
+  usePageTitle("Payment links");
   const [links, setLinks] = useState<PaymentLink[]>([]);
   const [totals, setTotals] = useState<Record<string, { count: number; sum: number }>>({});
   const [loading, setLoading] = useState(true);
@@ -84,19 +89,19 @@ const Links = () => {
   };
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Payment links</h1>
-          <p className="text-muted-foreground mt-1">Charge clients. Auto-split. Track everything.</p>
-        </div>
-        <button onClick={() => setShowNew(true)} className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-semibold hover:bg-primary-glow transition flex items-center gap-2">
-          <Plus className="size-4" /> New link
-        </button>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader
+        title="Payment links"
+        subtitle="Charge clients. Auto-split. Track everything."
+        actions={
+          <button onClick={() => setShowNew(true)} className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold text-sm hover:bg-primary-glow transition flex items-center gap-2">
+            <Plus className="size-4" /> New<span className="hidden sm:inline"> link</span>
+          </button>
+        }
+      />
 
       {loading ? (
-        <div className="p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={4} className="grid md:grid-cols-2 gap-4" />
       ) : links.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <Link2 className="size-10 mx-auto text-muted-foreground mb-4" />
@@ -135,33 +140,27 @@ const Links = () => {
         </div>
       )}
 
-      {showNew && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={() => setShowNew(false)}>
-          <form onSubmit={create} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">New payment link</h3>
-              <button type="button" onClick={() => setShowNew(false)} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-            </div>
-            <div className="space-y-4">
-              <label className="block">
-                <span className="text-sm text-muted-foreground">Name</span>
-                <input name="name" required placeholder="e.g. Logo design — Acme Co" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
-              </label>
-              <label className="block">
-                <span className="text-sm text-muted-foreground">Description (optional)</span>
-                <input name="description" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
-              </label>
-              <label className="block">
-                <span className="text-sm text-muted-foreground">Amount (KES)</span>
-                <input name="amount" type="number" step="0.01" required className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
-              </label>
-            </div>
-            <button type="submit" disabled={creating} className="mt-6 w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:bg-primary-glow transition disabled:opacity-50">
-              {creating ? "Creating…" : "Create link"}
-            </button>
-          </form>
-        </div>
-      )}
+      <ResponsiveModal open={showNew} onClose={() => setShowNew(false)} title="New payment link">
+        <form onSubmit={create}>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-sm text-muted-foreground">Name</span>
+              <input name="name" required placeholder="e.g. Logo design, Acme Co" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            </label>
+            <label className="block">
+              <span className="text-sm text-muted-foreground">Description (optional)</span>
+              <input name="description" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            </label>
+            <label className="block">
+              <span className="text-sm text-muted-foreground">Amount (KES)</span>
+              <input name="amount" type="number" step="0.01" required className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+            </label>
+          </div>
+          <button type="submit" disabled={creating} className="mt-6 w-full bg-primary text-primary-foreground font-semibold py-3 rounded-xl hover:bg-primary-glow transition disabled:opacity-50">
+            {creating ? "Creating…" : "Create link"}
+          </button>
+        </form>
+      </ResponsiveModal>
     </div>
   );
 };

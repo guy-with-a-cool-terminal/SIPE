@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   BUCKET_META, formatKES,
   type Goal, type GoalProgress, type GoalStatus,
@@ -13,6 +14,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { GoalModal } from "@/components/app/GoalModal";
 import { GoalContributionModal } from "@/components/app/GoalContributionModal";
 
@@ -26,6 +29,7 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day
 
 const Goals = () => {
   const { user } = useAuth();
+  usePageTitle("Goals");
   const [loading, setLoading] = useState(true);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [progress, setProgress] = useState<Record<string, GoalProgress>>({});
@@ -161,19 +165,19 @@ const Goals = () => {
   );
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Goals</h1>
-          <p className="text-muted-foreground mt-1">Named targets with progress and projections.</p>
-        </div>
-        <button
-          onClick={() => setGoalModal({ open: true, goal: null })}
-          className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
-        >
-          <Plus className="size-4" /> New goal
-        </button>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader
+        title="Goals"
+        subtitle="Named targets with progress and projections."
+        actions={
+          <button
+            onClick={() => setGoalModal({ open: true, goal: null })}
+            className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
+          >
+            <Plus className="size-4" /> New<span className="hidden sm:inline"> goal</span>
+          </button>
+        }
+      />
 
       {!loading && totals.count > 0 && (
         <div className="glass rounded-2xl p-5 mb-6">
@@ -209,7 +213,7 @@ const Goals = () => {
       )}
 
       {!loading && goals.length > 0 && (
-        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-6">
+        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit max-w-full overflow-x-auto mb-6">
           {filterBtn("active", "Active", counts.active)}
           {counts.paused > 0 && filterBtn("paused", "Paused", counts.paused)}
           {counts.achieved > 0 && filterBtn("achieved", "Achieved", counts.achieved)}
@@ -218,7 +222,7 @@ const Goals = () => {
       )}
 
       {loading ? (
-        <div className="glass rounded-2xl p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={6} className="grid md:grid-cols-2 xl:grid-cols-3 gap-4" />
       ) : goals.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center">
           <div className="size-12 rounded-xl bg-primary/10 text-primary grid place-items-center mx-auto mb-4">

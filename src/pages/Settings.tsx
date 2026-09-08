@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BUCKET_META, formatKES, type AllocationSettings, type Bucket, type ExpenseTemplate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Trash2, X } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -42,6 +44,7 @@ const EMAIL_LISTS: { key: EmailPrefKey; label: string; blurb: string }[] = [
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  usePageTitle("Settings");
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [s, setS] = useState({ savings_pct: 20, invest_pct: 15, pay_pct: 50, expenses_pct: 15 });
   const [limits, setLimits] = useState({ savings_limit: "", invest_limit: "", pay_limit: "", expenses_limit: "" });
@@ -272,19 +275,16 @@ const SettingsPage = () => {
   if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Tune your split. Tune your life.</p>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader title="Settings" subtitle="Tune your split. Tune your life." />
 
       {/* Mobile: horizontal pill tabs */}
-      <div className="md:hidden flex gap-1 p-1 bg-secondary/40 rounded-xl mb-6">
+      <div className="md:hidden flex gap-1 p-1 bg-secondary/40 rounded-xl mb-6 max-w-full overflow-x-auto">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >

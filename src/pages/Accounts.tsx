@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   formatKES,
   type Account,
@@ -13,6 +14,8 @@ import {
   CircleDollarSign, Archive, ArchiveRestore,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { AccountModal } from "@/components/app/AccountModal";
 import { AccountTransferModal } from "@/components/app/AccountTransferModal";
 import { AdjustBalanceModal } from "@/components/app/AdjustBalanceModal";
@@ -26,6 +29,7 @@ const fmtDate = (iso: string) =>
 
 const Accounts = () => {
   const { user } = useAuth();
+  usePageTitle("Accounts");
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [balances, setBalances] = useState<Record<string, AccountBalance>>({});
@@ -107,29 +111,29 @@ const Accounts = () => {
   };
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Accounts</h1>
-          <p className="text-muted-foreground mt-1">Where your money actually sits — platforms, banks, M-Pesa and cash.</p>
-        </div>
-        <div className="flex gap-2">
-          {active.length >= 2 && (
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader
+        title="Accounts"
+        subtitle="Where your money actually sits: platforms, banks, M-Pesa and cash."
+        actions={
+          <>
+            {active.length >= 2 && (
+              <button
+                onClick={() => setTransferOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-border hover:bg-secondary transition"
+              >
+                <ArrowRight className="size-4" /> <span className="hidden sm:inline">Record transfer</span><span className="sm:hidden">Transfer</span>
+              </button>
+            )}
             <button
-              onClick={() => setTransferOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-border hover:bg-secondary transition"
+              onClick={() => setAccountModal({ open: true, account: null })}
+              className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
             >
-              <ArrowRight className="size-4" /> Record transfer
+              <Plus className="size-4" /> New<span className="hidden sm:inline"> account</span>
             </button>
-          )}
-          <button
-            onClick={() => setAccountModal({ open: true, account: null })}
-            className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
-          >
-            <Plus className="size-4" /> New account
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Header: total cash + reconciliation chip */}
       {!loading && active.length > 0 && (
@@ -160,7 +164,7 @@ const Accounts = () => {
       )}
 
       {loading ? (
-        <div className="glass rounded-2xl p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={6} className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3" />
       ) : active.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center">
           <div className="size-12 rounded-xl bg-primary/10 text-primary grid place-items-center mx-auto mb-4">
