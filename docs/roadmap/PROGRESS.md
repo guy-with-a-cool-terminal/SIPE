@@ -160,9 +160,12 @@ Spec: [../design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md),
   all moved off `useEffect`+`reloadKey`/`load()` to `useQuery` + `queryClient.invalidateQueries`.
   Stable module-level empty defaults (`EMPTY_*`) keep downstream `useMemo` deps stable.
 - ✅ Fixed 2 long-standing type errors in Analytics (`row.month` → `row.key`); `tsc` now clean.
-- ⬜ Not yet done: `Settings` still on the old fetch pattern (3 independent loads +
-  tab-triggered lazy load — its own follow-up); the pre-existing lint errors
-  (ternary-as-statement in Dashboard/Debts, edge-fn escape, tailwind `require`).
+- `Settings` deliberately left on `useEffect`: its allocation %, limits and name are
+  controlled form fields seeded once from the server, which is the correct pattern, not the
+  anti-pattern react-query replaces. Its `templates` / `links` lists could move to `useQuery`
+  later but it is low value.
+- ⬜ Pre-existing lint errors remain (ternary-as-statement in Dashboard/Debts, edge-fn regex
+  escape, tailwind `require`) — not touched.
 
 ---
 

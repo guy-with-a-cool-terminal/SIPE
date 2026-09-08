@@ -111,7 +111,7 @@ Tick these before calling any surface "done". Grouped by area.
 - [ ] Images have explicit `width`/`height` or `aspect-ratio` to avoid layout shift (`logo.png` at `size-8` is fine; check any future ones).
 - [ ] No layout shift when data loads (skeletons reserve space).
 - [ ] Lighthouse: Performance ≥90, Accessibility ≥95, Best Practices 100 on `/dashboard` (throttled mobile).
-- [x] `react-query` actually used for caching — Dashboard, Transactions, Accounts, Goals, Debts, Links, Analytics now use `useQuery` + `queryClient.invalidateQueries`. Pattern: a module-level `EMPTY_*` default keeps downstream `useMemo` deps referentially stable. `Settings` is the last holdout.
+- [x] `react-query` actually used for caching — Dashboard, Transactions, Accounts, Goals, Debts, Links, Analytics now use `useQuery` + `queryClient.invalidateQueries`. Pattern: a module-level `EMPTY_*` default keeps downstream `useMemo` deps referentially stable. `Settings` stays on `useEffect` on purpose (its allocation/limits/name are server-seeded *editable* form state — the one place that pattern is correct).
 
 ### 2.6 Trust signals (this is a money app)
 
@@ -172,12 +172,12 @@ Fixed in the 2026-09-08 pass:
 Also fixed in the follow-up pass:
 
 - ~~The `react-query` inconsistency~~ → 7 of 8 data pages moved to `useQuery` +
-  `invalidateQueries` (Settings, with its 3 independent + lazy loads, is the last one).
+  `invalidateQueries` (Settings intentionally kept on `useEffect` — server-seeded form state).
 - ~~Skeletons on the long tail of lists~~ → WhatsNew, LinkDetail, Analytics, Settings.
 - ~~No visible mobile-drawer close button~~ → `DrawerClose` in `ResponsiveModal`.
 - Two long-standing `tsc` errors in Analytics fixed as a side effect; `tsc` now clean.
 
-Still open: unlabeled icon buttons (partial); `Settings` fetch migration; the handful of
-pre-existing lint errors (ternary-as-statement, an edge-fn regex escape, tailwind `require`).
+Still open: unlabeled icon buttons (partial); the handful of pre-existing lint errors
+(ternary-as-statement, an edge-fn regex escape, tailwind `require`).
 
 None of this was hard. It was a consistency pass, not a redesign.
