@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadPaperPdf, pdfFileName } from "@/lib/pdf";
 import { DocumentPaper, PaperFrame } from "@/components/invoicing/DocumentPaper";
 import {
   KIND_LABEL, displayStatus, issuerDisplayName,
@@ -33,6 +34,22 @@ const PublicDocument = () => {
     document.title = title;
   }, [title]);
 
+  const paperRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const download = async () => {
+    if (!paperRef.current || !doc) return;
+    setDownloading(true);
+    setFailed(false);
+    try {
+      await downloadPaperPdf(paperRef.current, pdfFileName(doc.number, issuerDisplayName(doc.issuer_snapshot)));
+    } catch {
+      setFailed(true);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const print = () => {
     const previous = document.title;
     document.title = (doc?.number ?? "document").replace(/[^\w-]+/g, "-");
@@ -60,15 +77,26 @@ const PublicDocument = () => {
                 <span className="font-semibold">{KIND_LABEL[doc.kind].title} {doc.number}</span>
                 <span className="text-slate-500"> from {issuerDisplayName(doc.issuer_snapshot)}</span>
               </p>
-              <button
-                onClick={print}
-                className="flex flex-shrink-0 items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-              >
-                <Printer className="size-4" /> Download PDF
-              </button>
+              <div className="flex flex-shrink-0 items-center gap-1">
+                <button onClick={print} aria-label="Print" title="Print" className="rounded-full p-2.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+                  <Printer className="size-4" />
+                </button>
+                <button
+                  onClick={download} disabled={downloading}
+                  className="flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
+                >
+                  <Download className="size-4" /> {downloading ? "Preparing…" : "Download PDF"}
+                </button>
+              </div>
             </div>
           </div>
           <main className="mx-auto max-w-[826px] px-4 py-6 sm:py-10 print:p-0">
+            {failed && (
+              <p className="mb-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 print:hidden">
+                The PDF couldn't be created in this browser. Use the print button and choose "Save as PDF" instead.
+              </p>
+            )}
+            <div ref={paperRef}>
             <PaperFrame>
               <DocumentPaper
                 kind={doc.kind}
@@ -83,6 +111,7 @@ const PublicDocument = () => {
                 payments={data.payments}
               />
             </PaperFrame>
+            </div>
             <p className="mt-6 text-center text-xs text-slate-500 print:hidden">
               Sent with <a href="/" className="underline">SIPE</a>
             </p>

@@ -73,6 +73,7 @@ export const DocumentPaper = ({
 
   return (
     <article
+      data-paper
       className="relative bg-white font-sans antialiased [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
       style={{ width: 794, minHeight: 1123, color: PAPER.ink, fontSize: 12.5, lineHeight: 1.5 }}
     >
@@ -85,7 +86,7 @@ export const DocumentPaper = ({
       >
         <div className="min-w-0">
           {issuer?.logo_url ? (
-            <img src={issuer.logo_url} alt={name} style={{ maxHeight: 56, maxWidth: 240 }} className="object-contain object-left" />
+            <img src={issuer.logo_url} alt={name} crossOrigin="anonymous" style={{ maxHeight: 56, maxWidth: 240 }} className="object-contain object-left" />
           ) : (
             <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>{name}</p>
           )}
@@ -449,6 +450,7 @@ export const PaperFrame = ({ children, className, style }: { children: ReactNode
     <div ref={outer} className={cn("w-full print:!h-auto", className)} style={{ height, ...style }}>
       <div
         ref={inner}
+        data-paper-frame
         className="origin-top-left shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6)] print:!transform-none print:shadow-none"
         style={{ width: 794, transform: `scale(${scale})` }}
       >

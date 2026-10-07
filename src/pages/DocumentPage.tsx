@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Ban, Check, Copy, CopyPlus, ExternalLink, FileText, HandCoins, Printer, ThumbsDown, ThumbsUp, Trash2,
+  Ban, Check, Copy, CopyPlus, Download, ExternalLink, FileText, HandCoins, Printer, ThumbsDown, ThumbsUp, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import { RecordPaymentModal } from "@/components/invoicing/RecordPaymentModal";
 import { PassThroughBadge, StatusBadge } from "@/components/invoicing/StatusBadge";
 import { clientLabel, createDraft, useBusinessProfile } from "@/hooks/useInvoicing";
 import { field } from "@/lib/forms";
+import { downloadPaperPdf, pdfFileName } from "@/lib/pdf";
 import {
   KIND_LABEL, PAYMENT_METHOD_LABEL, balanceDue, displayStatus, formatDocDate,
   type Client, type DocumentItem, type DocumentKind, type DocumentPayment, type SalesDocument,
@@ -114,6 +115,20 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
     queryClient.invalidateQueries({ queryKey: ["documents"] });
   };
 
+  const paperRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+  const download = async () => {
+    if (!paperRef.current) return;
+    setDownloading(true);
+    try {
+      await downloadPaperPdf(paperRef.current, pdfFileName(doc.number, name));
+    } catch (e) {
+      toast.error(`Couldn't create the PDF: ${(e as Error).message}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const print = () => {
     // The browser uses the page title as the PDF file name.
     const previous = document.title;
@@ -194,7 +209,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
           subtitle={<><Link to={label.path} className="hover:text-foreground transition">← All {label.many.toLowerCase()}</Link> · {name}</>}
           actions={
             <>
-              <button onClick={print} className={secondary}><Printer className="size-4" /> PDF</button>
+              <button onClick={download} disabled={downloading} className={secondary}><Download className="size-4" /> {downloading ? "Preparing…" : "Download PDF"}</button>
               {live && <button onClick={copyLink} className={secondary}>{copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied" : "Share link"}</button>}
               {isInvoice && doc.status === "sent" && <button onClick={() => setPaying(true)} className={primary}><HandCoins className="size-4" /> Record payment</button>}
               {!isInvoice && (doc.status === "sent" || doc.status === "accepted") && invoices.length === 0 && (
@@ -207,6 +222,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
         <div className="min-w-0">
+          <div ref={paperRef}>
           <PaperFrame className="mx-auto max-w-[794px]">
             <DocumentPaper
               kind={doc.kind} status={status === "partial" || status === "overdue" ? "sent" : status}
@@ -216,6 +232,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
               payments={payments} quoteNumber={quoteNumber}
             />
           </PaperFrame>
+          </div>
         </div>
 
         <aside className="space-y-4 print:hidden">
@@ -307,6 +324,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
 
           <Card title="More">
             <div className="flex flex-col gap-1">
+              <MenuButton onClick={print} icon={<Printer className="size-4" />}>Print</MenuButton>
               <MenuButton onClick={duplicate} disabled={busy} icon={<CopyPlus className="size-4" />}>Duplicate as new draft</MenuButton>
               {live && (
                 <a href={shareUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
