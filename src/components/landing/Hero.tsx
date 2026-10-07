@@ -12,7 +12,7 @@ export const Hero = () => (
   <>
     <section className="bg-background">
       <Container className="py-20 text-center sm:py-28">
-        <h1 className="mx-auto max-w-[900px] text-[40px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[60px]">
+        <h1 className="mx-auto max-w-[900px] text-balance text-[36px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[60px]">
           Your income comes in lumps.<br className="hidden sm:block" />{" "}
           <span className="text-primary">Your rent does not.</span>
         </h1>

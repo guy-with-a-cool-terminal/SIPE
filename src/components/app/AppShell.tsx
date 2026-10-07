@@ -80,7 +80,7 @@ export const AppShell = () => {
       >
         <div className={`flex items-center gap-2 border-b border-border ${collapsed ? "justify-center py-4 px-0" : "px-5 py-4"}`}>
           <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
-            <img src="/logo.png" alt="" className="size-8 flex-shrink-0" />
+            <img src="/logo.svg" alt="" className="size-8 flex-shrink-0" />
             {!collapsed && <span className="font-bold truncate">sipe</span>}
           </Link>
           {!collapsed && (
@@ -174,7 +174,7 @@ export const AppShell = () => {
         {/* ---------- Mobile top bar ---------- */}
         <div className="md:hidden print:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background px-4 h-14 [padding-top:env(safe-area-inset-top)]">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src="/logo.png" alt="" className="size-7" />
+            <img src="/logo.svg" alt="" className="size-7" />
             <span className="font-bold">sipe</span>
           </Link>
           <NotificationsBell align="right" direction="down" />

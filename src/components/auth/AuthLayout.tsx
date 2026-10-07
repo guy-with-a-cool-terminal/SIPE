@@ -8,7 +8,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: { title: strin
     {/* Left: form */}
     <div className="flex flex-col px-5 py-6 sm:p-10">
       <Link to="/" className="flex w-fit items-center gap-2">
-        <img src="/logo.png" alt="" className="size-8" />
+        <img src="/logo.svg" alt="" className="size-8" />
         <span className="text-xl font-bold tracking-tight">sipe</span>
       </Link>
       <div className="grid flex-1 place-items-center py-12">

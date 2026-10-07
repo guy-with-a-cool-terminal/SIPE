@@ -10,7 +10,7 @@ export const SectionHeading = ({
   title, sub, align = "left", className,
 }: { title: string; sub?: string; align?: "left" | "center"; className?: string }) => (
   <div className={cn(align === "center" ? "mx-auto max-w-[820px] text-center" : "max-w-2xl", className)}>
-    <h2 className="text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-[40px]">{title}</h2>
+    <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-[40px]">{title}</h2>
     {sub && <p className="mt-4 text-[17px] leading-relaxed text-muted-foreground">{sub}</p>}
   </div>
 );

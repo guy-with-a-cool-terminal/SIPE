@@ -108,20 +108,23 @@ Today this is duplicated in `GoalModal.tsx` and `AccountModal.tsx`. It should mo
 
 ## 3. Typography
 
-One family: **Inter** (loaded via Google Fonts `@import` in `index.css`), fallback
-`system-ui, sans-serif`. `h1–h3` and `.font-display` get `letter-spacing: -0.01em` and
-`font-weight: 700`.
+One family: **Poppins** (Google Fonts `@import` in `index.css`, weights 400–800), fallback
+`system-ui, sans-serif`. It is also Tailwind's `font-sans`, so the invoice paper uses it too.
+Switched from Inter on 2026-10-07 to match the Brian AI Studio marketing sites.
+`h1–h3` and `.font-display` get `letter-spacing: -0.01em` and `font-weight: 600`
+(Poppins at 700 reads heavy at display sizes; use `font-semibold` for headings).
 
-> **Known issue:** `index.css` labels Inter as `font-display` and the marketing pages
-> lean on it as if it were a display face. It is not — it is the body face. This is
-> fine (Inter is a strong workhorse) but the naming misleads. Treat `.font-display`
-> as "the heading weight of our one font", nothing more.
+### Logo
+
+`public/logo.svg` is the flat two-color mark (navy `#163a8a` S, green `#15803d` arrow and
+bars), traced from the original gradient PNG. Favicons, `apple-touch-icon.png` and
+`logo.png` (512px) are rendered from it. Use the SVG in the UI.
 
 ### 3.1 Type scale (target — see §3.2 for current drift)
 
 | Role | Classes | Notes |
 |---|---|---|
-| Page title (`h1`) | `text-2xl sm:text-3xl font-bold tracking-tight` | one per page, in `PageHeader` |
+| Page title (`h1`) | `text-2xl sm:text-3xl font-semibold tracking-tight` | one per page, in `PageHeader` |
 | Page subtitle | `text-sm text-muted-foreground` | optional, one line |
 | Section heading (`h2`) | `text-base font-semibold` | inside a page |
 | Card title | `text-sm font-medium` | |

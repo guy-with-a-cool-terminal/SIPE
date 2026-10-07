@@ -3,7 +3,7 @@ import { Container } from "./Section";
 
 export const Logo = () => (
   <Link to="/" className="flex items-center gap-2">
-    <img src="/logo.png" alt="" className="size-8" />
+    <img src="/logo.svg" alt="" className="size-8" />
     <span className="text-xl font-bold tracking-tight text-foreground">sipe</span>
   </Link>
 );
