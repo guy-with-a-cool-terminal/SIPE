@@ -23,6 +23,10 @@ const Accounts = lazy(() => import("./pages/Accounts.tsx"));
 const Goals = lazy(() => import("./pages/Goals.tsx"));
 const WhatsNew = lazy(() => import("./pages/WhatsNew.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
+const Documents = lazy(() => import("./pages/Documents.tsx"));
+const DocumentPage = lazy(() => import("./pages/DocumentPage.tsx"));
+const Clients = lazy(() => import("./pages/Clients.tsx"));
+const PublicDocument = lazy(() => import("./pages/PublicDocument.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -45,6 +49,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/d/:token" element={<PublicDocument />} />
               <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/accounts" element={<Accounts />} />
@@ -52,6 +57,11 @@ const App = () => (
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/goals" element={<Goals />} />
                 <Route path="/debts" element={<Debts />} />
+                <Route path="/quotes" element={<Documents kind="quote" key="quote" />} />
+                <Route path="/quotes/:id" element={<DocumentPage kind="quote" key="quote" />} />
+                <Route path="/invoices" element={<Documents kind="invoice" key="invoice" />} />
+                <Route path="/invoices/:id" element={<DocumentPage kind="invoice" key="invoice" />} />
+                <Route path="/clients" element={<Clients />} />
                 <Route path="/links" element={<Links />} />
                 <Route path="/links/:id" element={<LinkDetail />} />
                 <Route path="/settings" element={<Settings />} />

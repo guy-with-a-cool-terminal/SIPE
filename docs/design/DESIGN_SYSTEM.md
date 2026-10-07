@@ -322,3 +322,4 @@ Non-negotiable for "production ready":
 | `src/lib/swatches.ts` | shipped | the 8-color picker palette (§2.3) |
 | `src/lib/dates.ts` | shipped | `dateInputToISO` — timezone-safe date-input parsing |
 | `src/components/app/DataList.tsx` | shipped | generic table-on-desktop / cards-on-mobile wrapper (§5.5); Transactions uses it |
+| `src/components/invoicing/DocumentPaper.tsx` | shipped | the printable A4 quote/invoice. Deliberately light and brand-colored (user's `brand_color`), not themed: it is paper, not app UI. Its few fixed colors live in its `PAPER` constant. |

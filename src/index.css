@@ -149,3 +149,16 @@
 .animate-float { animation: float-up 6s ease-in-out infinite; }
 .animate-fade-up { animation: fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+
+/* Print: only the quote / invoice paper. App chrome carries `print:hidden`.
+   The first page bleeds the header band to the top edge; later pages get a margin. */
+@media print {
+  @page { size: A4; margin: 12mm 0 14mm; }
+  @page :first { margin-top: 0; }
+  html, body {
+    background: #fff !important;
+  }
+  body * {
+    box-shadow: none !important;
+  }
+}

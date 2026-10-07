@@ -9,6 +9,7 @@ import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Trash2, X } from "lucide
 import { PageHeader } from "@/components/app/PageHeader";
 import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
+import { BusinessSettings } from "@/components/invoicing/BusinessSettings";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
@@ -23,10 +24,11 @@ interface PaymentLink {
   created_at: string;
 }
 
-type SettingsTab = "profile" | "allocation" | "bills" | "email" | "links" | "integrations";
+type SettingsTab = "profile" | "business" | "allocation" | "bills" | "email" | "links" | "integrations";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "profile",      label: "Profile" },
+  { key: "business",     label: "Business" },
   { key: "allocation",   label: "Allocation" },
   { key: "bills",        label: "Bills" },
   { key: "email",        label: "Email" },
@@ -46,7 +48,10 @@ const EMAIL_LISTS: { key: EmailPrefKey; label: string; blurb: string }[] = [
 const SettingsPage = () => {
   const { user } = useAuth();
   usePageTitle("Settings");
-  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return TABS.some((x) => x.key === t) ? (t as SettingsTab) : "profile";
+  });
   const [s, setS] = useState({ savings_pct: 20, invest_pct: 15, pay_pct: 50, expenses_pct: 15 });
   const [limits, setLimits] = useState({ savings_limit: "", invest_limit: "", pay_limit: "", expenses_limit: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -321,6 +326,8 @@ const SettingsPage = () => {
 
         {/* Tab content */}
         <div className="flex-1 min-w-0 space-y-6">
+
+          {activeTab === "business" && <BusinessSettings />}
 
           {/* ── Profile ── */}
           {activeTab === "profile" && (

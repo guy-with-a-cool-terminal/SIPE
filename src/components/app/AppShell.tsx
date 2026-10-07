@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,6 +13,9 @@ import {
   Target,
   ShieldCheck,
   MoreHorizontal,
+  FilePen,
+  ReceiptText,
+  Contact,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/lib/admin";
@@ -25,13 +28,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const links = [
+const links: { to: string; label: string; icon: typeof Settings; group?: string }[] = [
   { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
   { to: "/accounts",     label: "Accounts",     icon: Wallet },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/analytics",   label: "Analytics",    icon: BarChart3 },
   { to: "/goals",       label: "Goals",        icon: Target },
   { to: "/debts",       label: "Debts",        icon: Landmark },
+  { to: "/quotes",      label: "Quotes",       icon: FilePen,     group: "Business" },
+  { to: "/invoices",    label: "Invoices",     icon: ReceiptText, group: "Business" },
+  { to: "/clients",     label: "Clients",      icon: Contact,     group: "Business" },
   { to: "/settings",    label: "Settings",     icon: Settings },
 ];
 
@@ -68,7 +74,7 @@ export const AppShell = () => {
     <div className="min-h-screen flex">
       {/* ---------- Desktop sidebar ---------- */}
       <aside
-        className={`hidden md:flex flex-col border-r border-border bg-card/40 backdrop-blur transition-[width] duration-200 overflow-hidden ${
+        className={`hidden md:flex print:!hidden flex-col border-r border-border bg-card/40 backdrop-blur transition-[width] duration-200 overflow-hidden ${
           collapsed ? "w-14" : "w-52"
         }`}
       >
@@ -101,9 +107,15 @@ export const AppShell = () => {
         )}
 
         <nav className={`flex flex-col gap-0.5 flex-1 ${collapsed ? "px-2 pt-3" : "px-3 pt-4"}`}>
-          {links.map(({ to, label, icon: Icon }) => (
+          {links.map(({ to, label, icon: Icon, group }, i) => (
+            <Fragment key={to}>
+            {group && links[i - 1]?.group !== group && (
+              collapsed
+                ? <div className="mx-auto my-2 h-px w-6 bg-border" />
+                : <p className="px-3 pt-4 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{group}</p>
+            )}
+            {!group && links[i - 1]?.group && (collapsed ? <div className="mx-auto my-2 h-px w-6 bg-border" /> : <div className="h-3" />)}
             <NavLink
-              key={to}
               to={to}
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
@@ -119,6 +131,7 @@ export const AppShell = () => {
               <Icon className="size-4 flex-shrink-0" />
               {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
+            </Fragment>
           ))}
         </nav>
 
@@ -159,7 +172,7 @@ export const AppShell = () => {
 
       <main className="flex-1 min-w-0 [padding-left:env(safe-area-inset-left)] [padding-right:env(safe-area-inset-right)]">
         {/* ---------- Mobile top bar ---------- */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/85 backdrop-blur px-4 h-14 [padding-top:env(safe-area-inset-top)]">
+        <div className="md:hidden print:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/85 backdrop-blur px-4 h-14 [padding-top:env(safe-area-inset-top)]">
           <Link to="/dashboard" className="flex items-center gap-2">
             <img src="/logo.png" alt="" className="size-7" />
             <span className="font-bold">sipe</span>
@@ -172,7 +185,7 @@ export const AppShell = () => {
 
         {/* ---------- Mobile bottom nav ---------- */}
         <nav
-          className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch border-t border-border bg-background/95 backdrop-blur [padding-bottom:env(safe-area-inset-bottom)]"
+          className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch border-t border-border bg-background/95 backdrop-blur [padding-bottom:env(safe-area-inset-bottom)]"
           aria-label="Primary"
         >
           {primaryLinks.map(({ to, label, icon: Icon }) => (

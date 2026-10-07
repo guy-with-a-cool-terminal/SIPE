@@ -169,6 +169,21 @@ Spec: [../design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md),
 
 ---
 
+## Quotes & invoices (2026-10-07)
+
+- ✅ Migration `20261007000000_invoicing.sql`: business profile, clients, documents/items/payments,
+  trigger-computed totals, gap-free numbering on finalise, invoice lock after finalise, quote → invoice
+  RPC, public share RPC, `brand` logo bucket. Tested against a throwaway Postgres (totals, numbering,
+  locks, auto paid/unpaid, RLS isolation, cascade delete).
+- ✅ Settings › Business: identity, logo upload, brand color + header style, bank / M-Pesa, VAT,
+  numbering, per-kind default notes/terms/validity, signatory, footer. Live sample preview at 2xl.
+- ✅ `/quotes`, `/invoices` (KPIs, status filters, DataList), `/clients`, draft editor with live A4
+  preview, finalised view (PDF, share link, record payment, accept/decline, convert, duplicate, void,
+  eTIMS no. + payment link), public `/d/:token`.
+- ✅ Recording an invoice payment runs `record-deposit` (S/I/P/E split) unless the money is already in SIPE.
+- ⬜ Next: email a document to the client (Resend), client "Accept quote" button on the public page,
+  Paystack page per invoice with webhook auto-reconcile, KRA eTIMS API, recurring invoices, receipts.
+
 ## Backlog (not being built now)
 
 **ops/costs API integrations.** Client projects (lexinon, toefl-academic `costs`, global-dream-link
