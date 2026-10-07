@@ -302,6 +302,7 @@ const Accounts = () => {
       <AccountModal
         open={accountModal.open}
         account={accountModal.account}
+        currentBalance={accountModal.account ? balanceOf(accountModal.account) : undefined}
         userId={user?.id ?? ""}
         onClose={() => setAccountModal({ open: false, account: null })}
         onSaved={reload}

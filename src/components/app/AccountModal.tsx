@@ -15,11 +15,13 @@ interface Props {
   onSaved: () => void;
   userId: string;
   account?: Account | null;
+  /** The account's computed balance today; required when editing. */
+  currentBalance?: number;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props) => {
+export const AccountModal = ({ open, onClose, onSaved, userId, account, currentBalance }: Props) => {
   const editing = !!account;
   const [saving, setSaving] = useState(false);
 
@@ -42,12 +44,13 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
     setInstitution(account?.institution ?? "");
     setProviderSlug(account?.provider_slug ?? "");
     setRouteKind((account?.route_kind as "ops" | "costs" | null) ?? "");
-    setOpeningBalance(account ? String(account.opening_balance) : "");
+    // Editing shows the balance as it stands today, not the original opening figure.
+    setOpeningBalance(account ? String(Number((currentBalance ?? account.opening_balance).toFixed(2))) : "");
     setOpeningBalanceAt(account?.opening_balance_at?.slice(0, 10) ?? today());
     setIsDefault(account?.is_default ?? false);
     setColor(account?.color ?? "");
     setNotes(account?.notes ?? "");
-  }, [open, account]);
+  }, [open, account, currentBalance]);
 
   if (!open) return null;
 
@@ -56,15 +59,13 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
     if (saving) return;
     if (!name.trim()) return toast.error("Enter an account name");
 
-    const payload = {
+    const details = {
       user_id: userId,
       name: name.trim(),
       kind,
       institution: institution.trim() || null,
       provider_slug: providerSlug.trim() || null,
       route_kind: routeKind || null,
-      opening_balance: Number(openingBalance) || 0,
-      opening_balance_at: dateInputToISO(openingBalanceAt),
       is_default: isDefault,
       color: color || null,
       notes: notes.trim() || null,
@@ -74,13 +75,42 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
 
     // One-default-per-user is enforced server-side by the `accounts_single_default`
     // trigger (20260903000300) — no client-side pre-clear needed.
-    const { error } = account
-      ? await supabase.from("accounts").update(payload).eq("id", account.id)
-      : await supabase.from("accounts").insert(payload);
+    if (!account) {
+      const { error } = await supabase.from("accounts").insert({
+        ...details,
+        opening_balance: Number(openingBalance) || 0,
+        opening_balance_at: dateInputToISO(openingBalanceAt),
+      });
+      setSaving(false);
+      if (error) return toast.error(error.message);
+      toast.success("Account created");
+      onSaved();
+      onClose();
+      return;
+    }
+
+    const { error } = await supabase.from("accounts").update(details).eq("id", account.id);
+    if (error) { setSaving(false); return toast.error(error.message); }
+
+    // The balance is opening_balance + all tagged activity, so rewriting
+    // opening_balance would leave that history stacked on top of the new figure.
+    // Record the difference as an adjustment instead, so the balance reads exactly
+    // what was typed.
+    const current = Number((currentBalance ?? account.opening_balance).toFixed(2));
+    const delta = Number(((Number(openingBalance) || 0) - current).toFixed(2));
+    if (delta !== 0) {
+      const { error: adjError } = await supabase.from("account_adjustments").insert({
+        user_id: userId,
+        account_id: account.id,
+        amount: delta,
+        reason: "Balance edited",
+        occurred_at: new Date().toISOString(),
+      });
+      if (adjError) { setSaving(false); return toast.error(adjError.message); }
+    }
 
     setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(editing ? "Account updated" : "Account created");
+    toast.success("Account updated");
     onSaved();
     onClose();
   };
@@ -126,16 +156,26 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          {editing ? (
             <label className="block">
-              <span className="text-sm text-muted-foreground">Opening balance (KES)</span>
+              <span className="text-sm text-muted-foreground">Current balance (KES)</span>
               <input value={openingBalance} onChange={(e) => setOpeningBalance(e.target.value)} type="number" step="0.01" placeholder="0.00" className={field} />
+              <span className="text-xs text-muted-foreground mt-1 block">
+                Type what is actually in the account today. SIPE records the difference as a correction.
+              </span>
             </label>
-            <label className="block">
-              <span className="text-sm text-muted-foreground">As of</span>
-              <input value={openingBalanceAt} onChange={(e) => setOpeningBalanceAt(e.target.value)} type="date" className={field} />
-            </label>
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-sm text-muted-foreground">Opening balance (KES)</span>
+                <input value={openingBalance} onChange={(e) => setOpeningBalance(e.target.value)} type="number" step="0.01" placeholder="0.00" className={field} />
+              </label>
+              <label className="block">
+                <span className="text-sm text-muted-foreground">As of</span>
+                <input value={openingBalanceAt} onChange={(e) => setOpeningBalanceAt(e.target.value)} type="date" className={field} />
+              </label>
+            </div>
+          )}
 
           <div>
             <span className="text-sm text-muted-foreground">Colour</span>
