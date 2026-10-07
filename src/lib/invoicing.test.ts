@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays, balanceDue, computeTotals, displayStatus, draftDefaults, formatDocDate,
-  normalizeHex, readableOn, type BusinessProfile,
+  formatDocNumber, normalizeHex, readableOn, type BusinessProfile,
 } from "./invoicing";
 
 describe("computeTotals", () => {
@@ -44,6 +44,13 @@ describe("displayStatus", () => {
 
   it("passes stored terminal statuses through", () => {
     expect(displayStatus({ ...base, status: "paid" }, "2027-01-01")).toBe("paid");
+  });
+});
+
+describe("formatDocNumber", () => {
+  it("matches the SQL format", () => {
+    expect(formatDocNumber("INV", "2026-10-07", 3)).toBe("INV-2026-0003");
+    expect(formatDocNumber("  ", "2026-10-07", 12)).toBe("2026-0012");
   });
 });
 

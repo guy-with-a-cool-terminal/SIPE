@@ -10,7 +10,7 @@ import { SWATCHES } from "@/lib/swatches";
 import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { DocumentPaper, PaperFrame } from "./DocumentPaper";
 import {
-  computeTotals, normalizeHex, todayISODate, addDays,
+  computeTotals, formatDocNumber, normalizeHex, todayISODate, addDays,
   type BusinessProfile, type DocumentItem,
 } from "@/lib/invoicing";
 
@@ -112,8 +112,7 @@ export const BusinessSettings = () => {
 
   if (isLoading || !seeded) return <CardGridSkeleton count={3} className="grid gap-4" />;
 
-  const numberExample = (prefix: string, seq: number) =>
-    `${prefix.trim() ? `${prefix.trim()}-` : ""}${year}-${String(Math.max(1, Number(seq) || 1)).padStart(4, "0")}`;
+  const numberExample = (prefix: string, seq: number) => formatDocNumber(prefix, today, seq);
 
   return (
     <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:items-start">

@@ -275,6 +275,12 @@ export function draftDefaults(kind: DocumentKind, bp: BusinessProfile | null, to
   };
 }
 
+/** "{prefix}-{YYYY}-{0001}", the format finalise_document() assigns. */
+export function formatDocNumber(prefix: string | null | undefined, issueDate: string, seq: number): string {
+  const p = (prefix ?? "").trim();
+  return `${p ? `${p}-` : ""}${issueDate.slice(0, 4)}-${String(Math.max(1, Math.floor(Number(seq) || 1))).padStart(4, "0")}`;
+}
+
 /** Business name shown on documents: trading name if set, else the legal name. */
 export const issuerDisplayName = (i: Pick<Issuer, "legal_name" | "trading_name"> | null) =>
   i?.trading_name?.trim() || i?.legal_name?.trim() || "Your business";

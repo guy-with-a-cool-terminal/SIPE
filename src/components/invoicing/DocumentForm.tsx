@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, Plus, Settings2, Trash2, UserPlus, X } from "lucide-react";
+import { AlertCircle, ChevronUp, Eye, Plus, Settings2, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatKES } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ConfirmDialog } from "@/components/app/ConfirmDialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { field } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 import { clientLabel, useClients } from "@/hooks/useInvoicing";
 import { ClientModal } from "./ClientModal";
 import { DocumentPaper, PaperFrame, type PaperDoc } from "./DocumentPaper";
 import {
-  KIND_LABEL, computeTotals, lineAmount,
+  KIND_LABEL, computeTotals, formatDocNumber, lineAmount,
   type BusinessProfile, type DiscountType, type DocumentItem, type SalesDocument,
 } from "@/lib/invoicing";
 
@@ -72,7 +73,7 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [clientModal, setClientModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmFinal, setConfirmFinal] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!dirty) return;
@@ -167,7 +168,7 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
   ].filter(Boolean) as string[];
 
   const finalise = async () => {
-    setConfirmFinal(false);
+    setPreviewOpen(false);
     if (!(await save(true))) return;
     setSaving(true);
     const { data, error } = await supabase.rpc("finalise_document", { p_id: doc.id });
@@ -187,6 +188,12 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
     toast.success("Draft deleted");
     navigate(label.path);
   };
+
+  const nextNumber = formatDocNumber(
+    isInvoice ? profile?.invoice_prefix ?? "INV" : profile?.quote_prefix ?? "QT",
+    f.issue_date,
+    (isInvoice ? profile?.next_invoice_seq : profile?.next_quote_seq) ?? 1,
+  );
 
   const preview = (
     <PaperFrame className="mx-auto max-w-[794px]">
@@ -212,7 +219,13 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
               {saving ? "Saving…" : dirty ? "Save draft" : "Saved"}
             </button>
             <button
-              onClick={() => problems.length ? toast.error(`Add ${problems.join(", ")} first`) : setConfirmFinal(true)}
+              onClick={() => setPreviewOpen(true)}
+              className="flex items-center gap-2 rounded-full border border-border px-4 py-2 font-semibold transition hover:bg-secondary/40"
+            >
+              <Eye className="size-4" /> Preview
+            </button>
+            <button
+              onClick={() => setPreviewOpen(true)}
               disabled={saving}
               className="rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50"
             >
@@ -371,16 +384,49 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
         title="Delete this draft?" description="It has no number yet, so nothing is lost from your sequence."
         confirmLabel="Delete draft" onConfirm={remove}
       />
-      <ConfirmDialog
-        open={confirmFinal} onOpenChange={setConfirmFinal}
-        title={`Finalise this ${label.one}?`}
-        description={
-          isInvoice
-            ? `It gets the next invoice number and your business and client details are locked in. To change amounts afterwards you void it and issue a new one.`
-            : `It gets the next quote number and becomes shareable with ${client ? clientLabel(client) : "the client"}.`
-        }
-        confirmLabel="Finalise" onConfirm={finalise}
-      />
+      {/* Full-size preview: exactly what the client gets, with the number it will receive. Finalising happens from here. */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="glass flex h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[900px] flex-col gap-0 rounded-2xl border-border p-0 sm:rounded-2xl">
+          <div className="flex-shrink-0 border-b border-border px-5 py-4 pr-12">
+            <DialogTitle className="text-lg font-bold">Preview</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              How {client ? clientLabel(client) : "your client"} will see it. It becomes {nextNumber} when you finalise.
+            </DialogDescription>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto bg-secondary/20 p-3 sm:p-6">
+            <PaperFrame className="mx-auto max-w-[794px]">
+              <DocumentPaper
+                kind={doc.kind} status="sent" number={nextNumber} doc={paperDoc} items={cleanItems}
+                totals={totals} amountPaid={0} issuer={profile} client={client} quoteNumber={null}
+              />
+            </PaperFrame>
+          </div>
+          <div className="flex-shrink-0 border-t border-border px-5 py-4 [padding-bottom:max(1rem,env(safe-area-inset-bottom))]">
+            {problems.length > 0 ? (
+              <p className="mb-3 flex items-start gap-2 text-sm text-warning">
+                <AlertCircle className="mt-0.5 size-4 flex-shrink-0" /> To finalise, add {problems.join(", ")}.
+              </p>
+            ) : (
+              <p className="mb-3 text-xs text-muted-foreground">
+                {isInvoice
+                  ? "Finalising gives it the next invoice number and locks your business and client details. To change amounts afterwards you void it and issue a new one."
+                  : "Finalising gives it the next quote number and makes it shareable. You can still duplicate it to send a revised quote."}
+              </p>
+            )}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button onClick={() => setPreviewOpen(false)} className="rounded-full border border-border px-4 py-2 font-semibold transition hover:bg-secondary/40">
+                Keep editing
+              </button>
+              <button
+                onClick={finalise} disabled={saving || problems.length > 0}
+                className="rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50"
+              >
+                {saving ? "Finalising…" : `Finalise as ${nextNumber}`}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
