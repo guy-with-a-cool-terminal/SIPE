@@ -30,8 +30,8 @@ import {
 
 const links: { to: string; label: string; icon: typeof Settings; group?: string }[] = [
   { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
-  { to: "/accounts",     label: "Accounts",     icon: Wallet },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { to: "/accounts",     label: "Accounts",     icon: Wallet },
   { to: "/analytics",   label: "Analytics",    icon: BarChart3 },
   { to: "/goals",       label: "Goals",        icon: Target },
   { to: "/debts",       label: "Debts",        icon: Landmark },
@@ -42,7 +42,7 @@ const links: { to: string; label: string; icon: typeof Settings; group?: string 
 ];
 
 // The 4 destinations that get a permanent slot in the mobile bottom bar.
-const PRIMARY_MOBILE = ["/dashboard", "/accounts", "/transactions", "/analytics"];
+const PRIMARY_MOBILE = ["/dashboard", "/transactions", "/accounts", "/analytics"];
 const primaryLinks = links.filter((l) => PRIMARY_MOBILE.includes(l.to));
 const moreLinks = links.filter((l) => !PRIMARY_MOBILE.includes(l.to));
 
