@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatKES, type Account } from "@/integrations/supabase/types";
+import { ResponsiveModal } from "./ResponsiveModal";
 
 interface Props {
   open: boolean;
@@ -60,17 +60,13 @@ export const AdjustBalanceModal = ({ open, onClose, onSaved, userId, accounts, b
   const field = "mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary";
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Adjust balance</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-        </div>
-
-        <p className="text-sm text-muted-foreground mb-6">
-          Tell SIPE the real balance. It records a signed correction so the account matches reality.
-        </p>
-
+    <ResponsiveModal
+      open={open}
+      onClose={onClose}
+      title="Adjust balance"
+      description="Tell SIPE the real balance. It records a signed correction so the account matches reality."
+    >
+      <form onSubmit={submit}>
         <div className="space-y-4">
           <label className="block">
             <span className="text-sm text-muted-foreground">Account</span>
@@ -105,6 +101,6 @@ export const AdjustBalanceModal = ({ open, onClose, onSaved, userId, accounts, b
           {saving ? "Saving…" : "Record adjustment"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

@@ -28,7 +28,9 @@ export function renderMarkdown(md: string): string {
       const h = lines[0].match(/^(#{1,3})\s+(.*)$/);
       if (h) {
         const level = h[1].length + 1; // h2..h4
-        return `<h${level}>${inline(h[2])}</h${level}>`;
+        // Text directly under a heading (no blank line) is still part of the block.
+        const rest = lines.slice(1).join("\n").trim();
+        return `<h${level}>${inline(h[2])}</h${level}>` + (rest ? renderMarkdown(rest) : "");
       }
       if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
         const items = lines

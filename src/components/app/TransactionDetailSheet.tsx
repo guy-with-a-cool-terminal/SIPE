@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BUCKET_META, formatKES, type Transaction } from "@/integrations/supabase/types";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   transaction: Transaction | null;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props) => {
+  const isMobile = useIsMobile();
   if (!transaction) return null;
 
   const isDeposit = transaction.type === "income" && transaction.parent_id === null;
@@ -22,7 +24,10 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
 
   return (
     <Sheet open={!!transaction} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        className="w-full overflow-y-auto sm:max-w-md max-h-[90dvh] rounded-t-3xl sm:rounded-t-none [padding-bottom:max(1.5rem,env(safe-area-inset-bottom))]"
+      >
         <SheetHeader className="mb-6">
           <div className="flex items-center gap-3">
             <div className={`size-10 rounded-xl grid place-items-center flex-shrink-0 ${transaction.type === "income" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>

@@ -54,7 +54,7 @@ supabase db reset    # re-runs all migrations from scratch
 - **`components/app/ProtectedRoute.tsx`** — guards authenticated routes
 - **`pages/`** — one file per route; data fetching is done directly with the Supabase client + React Query
 
-Routes: `/` `/login` `/register` (public) | `/dashboard` `/accounts` `/transactions` `/analytics` `/goals` `/debts` `/links` `/links/:id` `/settings` `/whats-new` (protected)
+Routes: `/` `/login` `/register` `/d/:token` (public) | `/dashboard` `/accounts` `/transactions` `/analytics` `/goals` `/debts` `/quotes` `/quotes/:id` `/invoices` `/invoices/:id` `/clients` `/links` `/links/:id` `/settings` `/whats-new` (protected)
 
 ### Backend (`supabase/`)
 
@@ -62,7 +62,7 @@ Edge functions handle all write operations. All accept JSON POST unless noted:
 
 | Function | Auth | Purpose |
 |---|---|---|
-| `record-deposit` | JWT required | Manual income entry → splits into 4 bucket child rows; optional `account_id`; funds `deposit_pct` goals |
+| `record-deposit` | JWT required | Manual income entry → splits into 4 bucket child rows; optional `account_id`; funds `deposit_pct` goals; optional `document_id` (+`method`, `reference`) also records it as a payment on that invoice |
 | `create-payment-link` | JWT required | Creates Paystack hosted page, stores in DB |
 | `paystack-webhook` | HMAC only | Receives `charge.success` from Paystack, auto-splits income into the default account |
 | `weekly-review` | JWT required | User-initiated: emails the caller their weekly summary via Resend. Sender: `noreply@cnbcode.com` |
@@ -86,6 +86,8 @@ No ORM — direct PostgREST queries via Supabase client. RLS on every table (use
 **Email / notifications**: `email_preferences` (per-user toggles + `unsubscribe_token`), `announcements` (service-role authored; readable once `published_at <= now()`), `notifications` (in-app feed; own SELECT/UPDATE, INSERT service-role only), `email_log` (`unique(user_id, kind, ref_id)`, dedupe + audit).
 
 **`bucket_balances` view**: computed per user — sums income vs. expenses per bucket. Queried on the Dashboard. Filters on `auth.uid()`, so service-role callers use `user_bucket_balances(uuid)` (SECURITY DEFINER) instead.
+
+**Quotes & invoices** (`20261007000000_invoicing.sql`): `business_profiles` (1:1 user; issuer identity, logo, brand color, bank/M-Pesa details, numbering, and the defaults every new document is prefilled from, edited in Settings › Business), `clients`, `documents` (`kind` quote|invoice, one table), `document_items`, `document_payments`. Money columns on `documents` are computed by triggers, never written by the client; an invoice flips `sent`↔`paid` from its payments. Numbers (`{prefix}-{YYYY}-{0001}`) are assigned only by the `finalise_document(id)` RPC, which also freezes `issuer_snapshot` / `client_snapshot`; only drafts can be deleted, finalised invoices are locked (void + duplicate to correct). `convert_quote_to_invoice(id)` RPC. Public share link `/d/:token` reads via `get_public_document(token)` (SECURITY DEFINER, anon, never drafts). Logos live in the public `brand` storage bucket under `{user_id}/`. One renderer, `components/invoicing/DocumentPaper.tsx`, serves preview, print-to-PDF (`window.print()` + `@media print` in `index.css`; shell chrome is `print:hidden`) and the public page.
 
 **Split pattern**: every income creates one parent row (`parent_id = NULL`) + four child rows (one per bucket, `parent_id` set). This is the accounting core — don't break it.
 

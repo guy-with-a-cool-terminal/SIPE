@@ -4,6 +4,8 @@ import { adminCall, useAdmin, useAdminUsers } from "@/lib/admin";
 import { AdminEmail } from "@/components/app/AdminEmail";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Tab = "overview" | "users" | "email";
 
@@ -31,6 +33,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "n
 
 const Admin = () => {
   const { isAdmin, loading } = useAdmin();
+  usePageTitle("Admin");
   const [tab, setTab] = useState<Tab>("overview");
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -56,11 +59,8 @@ const Admin = () => {
   );
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Admin</h1>
-        <p className="text-muted-foreground mt-1">Monitoring, users, and outbound email. Only visible to admins.</p>
-      </div>
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader title="Admin" subtitle="Monitoring, users, and outbound email. Only visible to admins." />
 
       <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-6">
         {tabBtn("overview", "Overview")}
@@ -116,32 +116,52 @@ const UsersView = () => {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No matching users.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-muted-foreground text-left">
-                <th className="font-medium py-2 pr-4">Email</th>
-                <th className="font-medium py-2 pr-4">Name</th>
-                <th className="font-medium py-2 pr-4">Joined</th>
-                <th className="font-medium py-2">News</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map((u) => (
-                <tr key={u.id}>
-                  <td className="py-2.5 pr-4 truncate max-w-[240px]">{u.email}</td>
-                  <td className="py-2.5 pr-4 text-muted-foreground truncate max-w-[160px]">{u.full_name || "-"}</td>
-                  <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{fmt(u.created_at)}</td>
-                  <td className="py-2.5">
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${u.subscribed ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                      {u.subscribed ? "on" : "off"}
-                    </span>
-                  </td>
+        <>
+          {/* Mobile: cards */}
+          <ul className="sm:hidden divide-y divide-border">
+            {rows.map((u) => (
+              <li key={u.id} className="flex items-start justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm truncate">{u.email}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {u.full_name || "No name"} · joined {fmt(u.created_at)}
+                  </p>
+                </div>
+                <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full ${u.subscribed ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                  {u.subscribed ? "on" : "off"}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs uppercase tracking-wide text-muted-foreground text-left">
+                  <th className="font-medium py-2 pr-4">Email</th>
+                  <th className="font-medium py-2 pr-4">Name</th>
+                  <th className="font-medium py-2 pr-4">Joined</th>
+                  <th className="font-medium py-2">News</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((u) => (
+                  <tr key={u.id}>
+                    <td className="py-2.5 pr-4 truncate max-w-[240px]">{u.email}</td>
+                    <td className="py-2.5 pr-4 text-muted-foreground truncate max-w-[160px]">{u.full_name || "-"}</td>
+                    <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{fmt(u.created_at)}</td>
+                    <td className="py-2.5">
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${u.subscribed ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                        {u.subscribed ? "on" : "off"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

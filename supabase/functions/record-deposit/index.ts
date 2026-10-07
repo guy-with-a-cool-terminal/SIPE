@@ -1,4 +1,6 @@
 // Manually record an income deposit and auto-split into SIPE buckets.
+// Optional `document_id` (+ `method`, `reference`) also records the deposit as a
+// payment against that invoice, linked to the parent transaction.
 // Auth required (JWT). Deploy: supabase functions deploy record-deposit
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -50,6 +52,9 @@ Deno.serve(async (req) => {
     const note = (body?.note ?? "").toString().trim() || null;
     const accountIdRaw = (body?.account_id ?? "").toString().trim() || null;
     const occurredAt = body?.occurred_at ? new Date(body.occurred_at).toISOString() : new Date().toISOString();
+    const documentId = (body?.document_id ?? "").toString().trim() || null;
+    const method = (body?.method ?? "").toString().trim() || "other";
+    const reference = (body?.reference ?? "").toString().trim() || null;
     if (!amount || amount <= 0) return json({ error: "Invalid amount" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE, { auth: { persistSession: false } });
@@ -61,6 +66,17 @@ Deno.serve(async (req) => {
         .from("accounts").select("id").eq("id", accountIdRaw).eq("user_id", userId).maybeSingle();
       if (!acct) return json({ error: "Account not found" }, 400);
       accountId = acct.id;
+    }
+
+    // Validate the invoice (if supplied) before any money is written.
+    if (documentId) {
+      const { data: doc } = await admin
+        .from("documents").select("id, kind, status")
+        .eq("id", documentId).eq("user_id", userId).maybeSingle();
+      if (!doc || doc.kind !== "invoice") return json({ error: "Invoice not found" }, 400);
+      if (doc.status !== "sent" && doc.status !== "paid") {
+        return json({ error: "Payments can only be recorded on a finalised invoice" }, 400);
+      }
     }
 
     const { data: settings, error: setErr } = await admin
@@ -104,6 +120,20 @@ Deno.serve(async (req) => {
 
     // Auto-contribute to active deposit_pct goals.
     await contributeToGoals(admin, userId, amount, parent.id, parent.occurred_at);
+
+    if (documentId) {
+      const { error: payErr } = await admin.from("document_payments").insert({
+        document_id: documentId,
+        user_id: userId,
+        amount,
+        paid_at: parent.occurred_at,
+        method,
+        reference,
+        note,
+        transaction_id: parent.id,
+      });
+      if (payErr) return json({ error: `Deposit recorded, but not linked to the invoice: ${payErr.message}` }, 500);
+    }
 
     return json({ ok: true, parent_id: parent.id, amount, account_id: accountId });
   } catch (e) {

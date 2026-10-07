@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Announcement } from "@/integrations/supabase/types";
 import { Markdown } from "./Markdown";
+import { ResponsiveModal } from "./ResponsiveModal";
 
 const SEEN_KEY = "sipe:lastSeenAnnouncement";
 
@@ -44,17 +45,13 @@ export const WhatsNew = () => {
   if (!ann) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-[60] p-4" onClick={dismiss}>
-      <div onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-7 w-full max-w-md max-h-[85vh] overflow-y-auto">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2 text-primary">
-            <Sparkles className="size-5" />
-            <span className="text-xs font-semibold uppercase tracking-wide">What's new</span>
-          </div>
-          <button onClick={dismiss} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
+    <ResponsiveModal open={!!ann} onClose={dismiss} title={ann.title}>
+      <div>
+        <div className="flex items-center gap-2 text-primary mb-3">
+          <Sparkles className="size-4" />
+          <span className="text-xs font-semibold uppercase tracking-wide">What's new</span>
         </div>
 
-        <h2 className="text-xl font-bold mb-3">{ann.title}</h2>
         <Markdown md={ann.body_md} />
 
         <div className="flex flex-wrap items-center gap-3 mt-6">
@@ -79,6 +76,6 @@ export const WhatsNew = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };

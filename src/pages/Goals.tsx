@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   BUCKET_META, formatKES,
   type Goal, type GoalProgress, type GoalStatus,
@@ -13,6 +15,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { GoalModal } from "@/components/app/GoalModal";
 import { GoalContributionModal } from "@/components/app/GoalContributionModal";
 
@@ -24,47 +28,53 @@ interface Contribution { goal_id: string; amount: number; occurred_at: string }
 const fmtMonth = (d: Date) => d.toLocaleDateString("en-KE", { month: "short", year: "numeric" });
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
 
+const EMPTY_GOALS = {
+  goals: [] as Goal[],
+  progress: {} as Record<string, GoalProgress>,
+  contribs: [] as Contribution[],
+  accountNames: {} as Record<string, string>,
+};
+
 const Goals = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [progress, setProgress] = useState<Record<string, GoalProgress>>({});
-  const [contribs, setContribs] = useState<Contribution[]>([]);
-  const [accountNames, setAccountNames] = useState<Record<string, string>>({});
+  usePageTitle("Goals");
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("active");
-  const [reloadKey, setReloadKey] = useState(0);
 
   const [goalModal, setGoalModal] = useState<{ open: boolean; goal: Goal | null }>({ open: false, goal: null });
   const [contribModal, setContribModal] = useState<{ open: boolean; goal: Goal | null }>({ open: false, goal: null });
   const [deleteGoal, setDeleteGoal] = useState<Goal | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["goals", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
       const [goalsRes, progRes, contribRes, acctRes] = await Promise.all([
-        supabase.from("goals").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
-        supabase.from("goal_progress").select("*").eq("user_id", user.id),
-        supabase.from("goal_contributions").select("goal_id,amount,occurred_at").eq("user_id", user.id).order("occurred_at", { ascending: true }),
-        supabase.from("accounts").select("id,name").eq("user_id", user.id),
+        supabase.from("goals").select("*").eq("user_id", user!.id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+        supabase.from("goal_progress").select("*").eq("user_id", user!.id),
+        supabase.from("goal_contributions").select("goal_id,amount,occurred_at").eq("user_id", user!.id).order("occurred_at", { ascending: true }),
+        supabase.from("accounts").select("id,name").eq("user_id", user!.id),
       ]);
-      if (goalsRes.error) toast.error(goalsRes.error.message);
-      setGoals(goalsRes.data || []);
+      if (goalsRes.error) throw goalsRes.error;
 
-      const pmap: Record<string, GoalProgress> = {};
-      (progRes.data || []).forEach((p: GoalProgress) => { pmap[p.goal_id] = p; });
-      setProgress(pmap);
+      const progress: Record<string, GoalProgress> = {};
+      (progRes.data || []).forEach((p: GoalProgress) => { progress[p.goal_id] = p; });
 
-      setContribs((contribRes.data || []) as Contribution[]);
+      const accountNames: Record<string, string> = {};
+      (acctRes.data || []).forEach((a: { id: string; name: string }) => { accountNames[a.id] = a.name; });
 
-      const amap: Record<string, string> = {};
-      (acctRes.data || []).forEach((a: { id: string; name: string }) => { amap[a.id] = a.name; });
-      setAccountNames(amap);
+      return {
+        goals: (goalsRes.data || []) as Goal[],
+        progress,
+        contribs: (contribRes.data || []) as Contribution[],
+        accountNames,
+      };
+    },
+  });
 
-      setLoading(false);
-    })();
-  }, [user, reloadKey]);
+  const { goals, progress, contribs, accountNames } = data ?? EMPTY_GOALS;
 
-  const reload = () => setReloadKey((k) => k + 1);
+  const reload = () => queryClient.invalidateQueries({ queryKey: ["goals"] });
 
   // If the current filter's tab is hidden (its category emptied out), fall back.
   useEffect(() => {
@@ -161,19 +171,19 @@ const Goals = () => {
   );
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Goals</h1>
-          <p className="text-muted-foreground mt-1">Named targets with progress and projections.</p>
-        </div>
-        <button
-          onClick={() => setGoalModal({ open: true, goal: null })}
-          className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
-        >
-          <Plus className="size-4" /> New goal
-        </button>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader
+        title="Goals"
+        subtitle="Named targets with progress and projections."
+        actions={
+          <button
+            onClick={() => setGoalModal({ open: true, goal: null })}
+            className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
+          >
+            <Plus className="size-4" /> New<span className="hidden sm:inline"> goal</span>
+          </button>
+        }
+      />
 
       {!loading && totals.count > 0 && (
         <div className="glass rounded-2xl p-5 mb-6">
@@ -209,7 +219,7 @@ const Goals = () => {
       )}
 
       {!loading && goals.length > 0 && (
-        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit mb-6">
+        <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl w-fit max-w-full overflow-x-auto mb-6">
           {filterBtn("active", "Active", counts.active)}
           {counts.paused > 0 && filterBtn("paused", "Paused", counts.paused)}
           {counts.achieved > 0 && filterBtn("achieved", "Achieved", counts.achieved)}
@@ -218,7 +228,7 @@ const Goals = () => {
       )}
 
       {loading ? (
-        <div className="glass rounded-2xl p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={6} className="grid md:grid-cols-2 xl:grid-cols-3 gap-4" />
       ) : goals.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center">
           <div className="size-12 rounded-xl bg-primary/10 text-primary grid place-items-center mx-auto mb-4">

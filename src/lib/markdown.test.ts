@@ -36,4 +36,11 @@ describe("renderMarkdown", () => {
   it("keeps paragraphs separate", () => {
     expect(renderMarkdown("one\n\ntwo")).toBe("<p>one</p><p>two</p>");
   });
+
+  it("keeps text written directly under a heading", () => {
+    expect(renderMarkdown("### 1. Scope\nWork outside scope is quoted separately.\n- one\n- two")).toBe(
+      "<h4>1. Scope</h4><p>Work outside scope is quoted separately. - one - two</p>",
+    );
+    expect(renderMarkdown("## Title\n- a\n- b")).toBe("<h3>Title</h3><ul><li>a</li><li>b</li></ul>");
+  });
 });

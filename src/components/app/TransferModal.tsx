@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket } from "@/integrations/supabase/types";
-import { X, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { dateInputToISO } from "@/lib/dates";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 
@@ -32,7 +34,7 @@ export const TransferModal = ({ open, onClose, onSaved, userId }: Props) => {
     const fd = new FormData(e.currentTarget);
     const amount = Number(fd.get("amount"));
     const note = String(fd.get("note") || "") || null;
-    const occurred_at = new Date(String(fd.get("date") || new Date().toISOString().slice(0, 10))).toISOString();
+    const occurred_at = dateInputToISO(String(fd.get("date") || new Date().toISOString().slice(0, 10)));
 
     if (from === to) return toast.error("Cannot transfer to the same bucket");
     if (!amount || amount <= 0) return toast.error("Enter a valid amount");
@@ -70,23 +72,13 @@ export const TransferModal = ({ open, onClose, onSaved, userId }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={handleClose}>
-      <form
-        onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
-        className="glass rounded-3xl p-8 w-full max-w-md"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Transfer between buckets</h3>
-          <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground">
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <p className="text-sm text-muted-foreground mb-6">
-          Move money from one bucket to another. The source balance decreases and the destination increases.
-        </p>
-
+    <ResponsiveModal
+      open={open}
+      onClose={handleClose}
+      title="Transfer between buckets"
+      description="Move money from one bucket to another. The source balance decreases and the destination increases."
+    >
+      <form onSubmit={handleSubmit}>
         {/* From / To selectors */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1">
@@ -143,6 +135,6 @@ export const TransferModal = ({ open, onClose, onSaved, userId }: Props) => {
           {saving ? "Transferring…" : "Transfer"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatKES, type Goal } from "@/integrations/supabase/types";
 import { goalIcon } from "@/lib/goalIcons";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { dateInputToISO } from "@/lib/dates";
 
 interface Props {
   open: boolean;
@@ -47,7 +48,7 @@ export const GoalContributionModal = ({ open, onClose, onSaved, userId, goal, cu
       user_id: userId,
       amount: amt,
       note: note.trim() || null,
-      occurred_at: new Date(date).toISOString(),
+      occurred_at: dateInputToISO(date),
       auto: false,
     });
     setSaving(false);
@@ -60,13 +61,8 @@ export const GoalContributionModal = ({ open, onClose, onSaved, userId, goal, cu
   const field = "mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary";
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">Add contribution</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-        </div>
-
+    <ResponsiveModal open={open} onClose={onClose} title="Add contribution">
+      <form onSubmit={submit}>
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground mb-6">
           <Icon className="size-4 text-foreground shrink-0" />
           <span className="font-medium text-foreground">{goal.name}</span>
@@ -93,6 +89,6 @@ export const GoalContributionModal = ({ open, onClose, onSaved, userId, goal, cu
           {saving ? "Saving…" : "Record contribution"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

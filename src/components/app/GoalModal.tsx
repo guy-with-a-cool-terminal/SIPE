@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, type Account, type Bucket, type Goal, type GoalFunding } from "@/integrations/supabase/types";
 import { GOAL_ICONS, GOAL_ICON_KEYS, DEFAULT_GOAL_ICON } from "@/lib/goalIcons";
+import { ResponsiveModal } from "./ResponsiveModal";
+import { SWATCHES } from "@/lib/swatches";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
-const SWATCHES = ["#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#f97316", "#eab308", "#14b8a6", "#64748b"];
 
 const FUNDING_OPTS: { value: GoalFunding; label: string; hint: string }[] = [
   { value: "manual",      label: "Manual",            hint: "You log contributions yourself." },
@@ -108,13 +108,8 @@ export const GoalModal = ({ open, onClose, onSaved, userId, goal, goals }: Props
   const field = "mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary";
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur grid place-items-center z-50 p-4" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">{editing ? "Edit goal" : "New goal"}</h3>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
-        </div>
-
+    <ResponsiveModal open={open} onClose={onClose} title={editing ? "Edit goal" : "New goal"}>
+      <form onSubmit={submit}>
         <div className="space-y-4">
           <label className="block">
             <span className="text-sm text-muted-foreground">Name</span>
@@ -205,6 +200,6 @@ export const GoalModal = ({ open, onClose, onSaved, userId, goal, goals }: Props
           {saving ? "Saving…" : editing ? "Save changes" : "Create goal"}
         </button>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 };

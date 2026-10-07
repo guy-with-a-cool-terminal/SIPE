@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BUCKET_META, formatKES, type AllocationSettings, type Bucket, type ExpenseTemplate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Trash2, X } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
+import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
+import { BusinessSettings } from "@/components/invoicing/BusinessSettings";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
@@ -20,10 +24,11 @@ interface PaymentLink {
   created_at: string;
 }
 
-type SettingsTab = "profile" | "allocation" | "bills" | "email" | "links" | "integrations";
+type SettingsTab = "profile" | "business" | "allocation" | "bills" | "email" | "links" | "integrations";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "profile",      label: "Profile" },
+  { key: "business",     label: "Business" },
   { key: "allocation",   label: "Allocation" },
   { key: "bills",        label: "Bills" },
   { key: "email",        label: "Email" },
@@ -42,7 +47,11 @@ const EMAIL_LISTS: { key: EmailPrefKey; label: string; blurb: string }[] = [
 
 const SettingsPage = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  usePageTitle("Settings");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return TABS.some((x) => x.key === t) ? (t as SettingsTab) : "profile";
+  });
   const [s, setS] = useState({ savings_pct: 20, invest_pct: 15, pay_pct: 50, expenses_pct: 15 });
   const [limits, setLimits] = useState({ savings_limit: "", invest_limit: "", pay_limit: "", expenses_limit: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -269,22 +278,26 @@ const SettingsPage = () => {
     toast.success("Weekly summary sent to your email");
   };
 
-  if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+        <PageHeader title="Settings" subtitle="Tune your split. Tune your life." />
+        <CardGridSkeleton count={4} className="grid gap-4" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Tune your split. Tune your life.</p>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
+      <PageHeader title="Settings" subtitle="Tune your split. Tune your life." />
 
       {/* Mobile: horizontal pill tabs */}
-      <div className="md:hidden flex gap-1 p-1 bg-secondary/40 rounded-xl mb-6">
+      <div className="md:hidden flex gap-1 p-1 bg-secondary/40 rounded-xl mb-6 max-w-full overflow-x-auto">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >
@@ -313,6 +326,8 @@ const SettingsPage = () => {
 
         {/* Tab content */}
         <div className="flex-1 min-w-0 space-y-6">
+
+          {activeTab === "business" && <BusinessSettings />}
 
           {/* ── Profile ── */}
           {activeTab === "profile" && (
@@ -600,7 +615,7 @@ const SettingsPage = () => {
 
               {/* Link list */}
               {loadingLinks ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
+                <ListSkeleton rows={3} plain />
               ) : links.length === 0 ? (
                 <div className="text-center py-8">
                   <Link2 className="size-8 mx-auto text-muted-foreground mb-2" />

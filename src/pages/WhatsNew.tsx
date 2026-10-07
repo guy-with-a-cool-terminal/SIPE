@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Announcement } from "@/integrations/supabase/types";
 import { Markdown } from "@/components/app/Markdown";
+import { CardGridSkeleton } from "@/components/app/Skeletons";
 
 const SEEN_KEY = "sipe:lastSeenAnnouncement";
 
@@ -15,6 +17,7 @@ const isExternal = (url: string) => /^https?:\/\//i.test(url);
 
 const WhatsNewPage = () => {
   const { user } = useAuth();
+  usePageTitle("What's new");
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,15 +40,15 @@ const WhatsNewPage = () => {
   }, [user]);
 
   return (
-    <div className="p-6 md:px-8 xl:px-12 py-6 md:py-8 w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 pb-24 md:pb-10">
       <div className="flex items-center gap-2 text-primary mb-1">
         <Sparkles className="size-5" />
         <span className="text-xs font-semibold uppercase tracking-wide">What's new</span>
       </div>
-      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-8">Product updates</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8">Product updates</h1>
 
       {loading ? (
-        <div className="glass rounded-2xl p-10 text-center text-muted-foreground">Loading…</div>
+        <CardGridSkeleton count={3} className="space-y-4" />
       ) : items.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center text-muted-foreground">No updates yet.</div>
       ) : (

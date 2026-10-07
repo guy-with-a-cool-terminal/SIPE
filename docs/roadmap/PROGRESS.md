@@ -121,6 +121,69 @@ Legend: ⬜ not started · 🔨 in progress · 🔍 verifying · ✅ done (orche
 
 ---
 
+## Design system & responsive pass — in progress (started 2026-09-08)
+
+Spec: [../design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md),
+[../design/AVOIDING_AI_VIBES.md](../design/AVOIDING_AI_VIBES.md),
+[../design/RESPONSIVE.md](../design/RESPONSIVE.md).
+
+- ✅ Three design docs written (system, anti-AI-slop / production checklist, responsive contract).
+- ✅ Foundations: `viewport-fit=cover`; global 16px mobile input rule + `prefers-reduced-motion`
+  + `focus-visible` ring in `index.css`; `PageContainer` + `PageHeader` primitives.
+- ✅ Mobile nav rebuilt in `AppShell`: sticky top bar + fixed bottom tab bar (Dashboard,
+  Accounts, Transactions, Analytics) + "More" bottom sheet (Goals, Debts, Settings, Admin,
+  Sign out). Replaces the inline-links header that overflowed below ~600px.
+- ✅ `ResponsiveModal` (vaul drawer < md, Radix dialog ≥ md). Migrated all 10 hand-rolled
+  overlays: Deposit, AddExpense, EditTransaction, Goal, GoalContribution, Account,
+  AccountTransfer, AdjustBalance, Transfer (bucket), WhatsNew, + the inline Links modal.
+- ✅ Page roots → responsive container (`px-4` floor, `max-w-[1400px]`, bottom-nav clearance).
+- ✅ `h1` normalised to `text-2xl sm:text-3xl` across every page (was `text-xl`…`text-4xl`).
+- ✅ Transactions table → card list < md; filter grid reflows; period pickers scroll on mobile.
+- ✅ Analytics donut/legend stacks < sm; bar chart `maxBarSize` so bars fit narrow screens.
+- ✅ `TransactionDetailSheet` opens as a bottom sheet on mobile.
+- ✅ Route-level code splitting in `App.tsx` (main bundle 1.22 MB → 617 kB; recharts isolated).
+- ✅ Shared `src/lib/forms.ts` (field class) + `src/lib/swatches.ts` (picker palette)
+  + `src/lib/dates.ts` (`dateInputToISO` — anchors picked dates at local midday so the
+  calendar date survives a `toISOString()` round-trip; applied to all 7 date-writing modals).
+- ✅ `PageHeader` rolled out to every page (Dashboard, Transactions, Accounts, Goals, Debts,
+  Links, Analytics, Settings, Admin). Header action buttons collapse to short labels on mobile.
+- ✅ Per-route `document.title` via `usePageTitle` hook (all 11 protected pages).
+- ✅ Loading skeletons: `src/components/app/Skeletons.tsx` (`ListSkeleton`, `CardGridSkeleton`);
+  Dashboard shows a full skeleton while loading (no more KES-0 flash), Transactions / Goals /
+  Accounts / Links / Debts swapped bare "Loading…" for shaped skeletons.
+- ✅ Admin users table → card list < sm. Settings mobile tab strip scrolls instead of squishing.
+- ✅ `text-green-500` → `text-primary` in AddExpenseModal.
+- ✅ Loading skeletons extended to WhatsNew, LinkDetail, Analytics, Settings (+ its links sub-panel).
+- ✅ Visible close button on mobile drawers (`DrawerClose` in `ResponsiveModal`).
+- ✅ `DataList` generic (table ≥ breakpoint / cards below); Transactions migrated to it.
+- ✅ `react-query` adoption: Dashboard, Transactions, Accounts, Goals, Debts, Links, Analytics
+  all moved off `useEffect`+`reloadKey`/`load()` to `useQuery` + `queryClient.invalidateQueries`.
+  Stable module-level empty defaults (`EMPTY_*`) keep downstream `useMemo` deps stable.
+- ✅ Fixed 2 long-standing type errors in Analytics (`row.month` → `row.key`); `tsc` now clean.
+- `Settings` deliberately left on `useEffect`: its allocation %, limits and name are
+  controlled form fields seeded once from the server, which is the correct pattern, not the
+  anti-pattern react-query replaces. Its `templates` / `links` lists could move to `useQuery`
+  later but it is low value.
+- ⬜ Pre-existing lint errors remain (ternary-as-statement in Dashboard/Debts, edge-fn regex
+  escape, tailwind `require`) — not touched.
+
+---
+
+## Quotes & invoices (2026-10-07)
+
+- ✅ Migration `20261007000000_invoicing.sql`: business profile, clients, documents/items/payments,
+  trigger-computed totals, gap-free numbering on finalise, invoice lock after finalise, quote → invoice
+  RPC, public share RPC, `brand` logo bucket. Tested against a throwaway Postgres (totals, numbering,
+  locks, auto paid/unpaid, RLS isolation, cascade delete).
+- ✅ Settings › Business: identity, logo upload, brand color + header style, bank / M-Pesa, VAT,
+  numbering, per-kind default notes/terms/validity, signatory, footer. Live sample preview at 2xl.
+- ✅ `/quotes`, `/invoices` (KPIs, status filters, DataList), `/clients`, draft editor with live A4
+  preview, finalised view (PDF, share link, record payment, accept/decline, convert, duplicate, void,
+  eTIMS no. + payment link), public `/d/:token`.
+- ✅ Recording an invoice payment runs `record-deposit` (S/I/P/E split) unless the money is already in SIPE.
+- ⬜ Next: email a document to the client (Resend), client "Accept quote" button on the public page,
+  Paystack page per invoice with webhook auto-reconcile, KRA eTIMS API, recurring invoices, receipts.
+
 ## Backlog (not being built now)
 
 **ops/costs API integrations.** Client projects (lexinon, toefl-academic `costs`, global-dream-link

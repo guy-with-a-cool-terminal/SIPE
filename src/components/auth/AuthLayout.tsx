@@ -11,7 +11,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: { title: strin
       </Link>
       <div className="flex-1 grid place-items-center py-12">
         <div className="w-full max-w-sm animate-fade-up">
-          <h1 className="font-display text-5xl leading-tight">{title}</h1>
+          <h1 className="font-display text-4xl sm:text-5xl leading-tight">{title}</h1>
           <p className="mt-3 text-muted-foreground">{subtitle}</p>
           <div className="mt-10 space-y-5">{children}</div>
           <div className="mt-8 text-sm text-muted-foreground">{footer}</div>
