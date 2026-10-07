@@ -97,7 +97,7 @@ const Links = () => {
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
       <PageHeader
         title="Payment links"
-        subtitle="Charge clients. Auto-split. Track everything."
+        subtitle="Paystack links clients pay through. Payments are split as they land."
         actions={
           <button onClick={() => setShowNew(true)} className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold text-sm hover:bg-primary-glow transition flex items-center gap-2">
             <Plus className="size-4" /> New<span className="hidden sm:inline"> link</span>

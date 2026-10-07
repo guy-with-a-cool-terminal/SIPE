@@ -74,14 +74,14 @@ export const AccountTransferModal = ({ open, onClose, onSaved, userId, accounts 
       <form onSubmit={submit}>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">From</p>
+            <p className="text-xs text-muted-foreground mb-1.5">From</p>
             <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-input border border-border rounded-xl px-3 py-2.5 text-sm">
               {accounts.map((a) => <option key={a.id} value={a.id} disabled={a.id === to}>{a.name}</option>)}
             </select>
           </div>
           <ArrowRight className="size-5 text-muted-foreground flex-shrink-0 mt-5" />
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">To</p>
+            <p className="text-xs text-muted-foreground mb-1.5">To</p>
             <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-input border border-border rounded-xl px-3 py-2.5 text-sm">
               {accounts.map((a) => <option key={a.id} value={a.id} disabled={a.id === from}>{a.name}</option>)}
             </select>

@@ -33,8 +33,8 @@ const Register = () => {
 
   return (
     <AuthLayout
-      title="Start splitting."
-      subtitle="Three minutes. Then your income runs itself."
+      title="Create your account"
+      subtitle="Set your split once. Every payment after that is divided for you."
       footer={<>Already have an account? <Link to="/login" className="text-primary hover:underline">Log in</Link></>}
     >
       <form className="space-y-5" onSubmit={onSubmit}>

@@ -337,7 +337,7 @@ const Analytics = () => {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
-        <PageHeader title="Analytics" subtitle="Build the habit. Track the proof." />
+        <PageHeader title="Analytics" subtitle="Income against spending, by month, bucket and category." />
         <div className="space-y-5">
           <CardGridSkeleton count={2} className="grid sm:grid-cols-2 gap-4" />
           <Skeleton className="h-72 w-full rounded-xl" />
@@ -352,7 +352,7 @@ const Analytics = () => {
 
       <PageHeader
         title="Analytics"
-        subtitle="Build the habit. Track the proof."
+        subtitle="Income against spending, by month, bucket and category."
         actions={
           <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl max-w-full overflow-x-auto">
             <button className={periodBtnClass("week")}     onClick={() => setPeriod("week")}>This week</button>
@@ -378,7 +378,7 @@ const Analytics = () => {
             <div className="glass rounded-xl p-5">
               {isWeekView ? (
                 <>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">{weekLabel}</p>
+                  <p className="text-xs text-muted-foreground mb-3">{weekLabel}</p>
                   <p className={`text-2xl font-bold ${periodIncome - periodSpend >= 0 ? "text-primary" : "text-destructive"}`}>
                     {periodIncome - periodSpend >= 0 ? "+" : ""}{formatKES(periodIncome - periodSpend)}
                   </p>
@@ -386,7 +386,7 @@ const Analytics = () => {
                 </>
               ) : (
                 <>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                  <p className="text-xs text-muted-foreground mb-3">
                     {lastFullMonthRow ? lastFullMonthRow.label : "Last month"}
                   </p>
                   {lastFullMonthRow ? (
@@ -413,7 +413,7 @@ const Analytics = () => {
 
             {/* Period income */}
             <div className="glass rounded-xl p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 {isWeekView ? "Income this week" : "Earned this period"}
               </p>
               <p className="text-2xl font-bold text-primary">{formatKES(periodIncome)}</p>
@@ -426,7 +426,7 @@ const Analytics = () => {
 
             {/* Period spend */}
             <div className="glass rounded-xl p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 {isWeekView ? "Spent this week" : "Spent this period"}
               </p>
               <p className="text-2xl font-bold">{formatKES(periodSpend)}</p>
@@ -551,7 +551,7 @@ const Analytics = () => {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-secondary/30 text-muted-foreground uppercase tracking-wide">
+                    <thead className="bg-secondary/30 text-muted-foreground">
                       <tr>
                         <th className="text-left px-4 py-2.5">Month</th>
                         <th className="text-right px-3 py-2.5">Opening</th>
@@ -568,10 +568,10 @@ const Analytics = () => {
                             {formatKES(row.opening)}
                           </td>
                           <td className="px-3 py-2.5 text-right text-primary tabular-nums">
-                            {row.income > 0 ? `+${formatKES(row.income)}` : "—"}
+                            {row.income > 0 ? `+${formatKES(row.income)}` : "–"}
                           </td>
                           <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
-                            {row.spend > 0 ? `−${formatKES(row.spend)}` : "—"}
+                            {row.spend > 0 ? `−${formatKES(row.spend)}` : "–"}
                           </td>
                           <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${
                             row.closing >= 0 ? "text-primary" : "text-destructive"
@@ -666,7 +666,7 @@ const Analytics = () => {
                         pct === null ? "text-muted-foreground" : good ? "text-primary" : "text-destructive"
                       }`}>
                         {pct !== null && (delta > 0 ? <TrendingUp className="size-3" /> : delta < 0 ? <TrendingDown className="size-3" /> : null)}
-                        {pct !== null ? `${Math.abs(pct).toFixed(0)}%` : "—"}
+                        {pct !== null ? `${Math.abs(pct).toFixed(0)}%` : "–"}
                       </span>
                     </div>
                   );

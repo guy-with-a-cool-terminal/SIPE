@@ -82,7 +82,7 @@ export const TransferModal = ({ open, onClose, onSaved, userId }: Props) => {
         {/* From / To selectors */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">From</p>
+            <p className="text-xs text-muted-foreground mb-1.5">From</p>
             <select
               value={from}
               onChange={(e) => setFrom(e.target.value as Bucket)}
@@ -95,7 +95,7 @@ export const TransferModal = ({ open, onClose, onSaved, userId }: Props) => {
           </div>
           <ArrowRight className="size-5 text-muted-foreground flex-shrink-0 mt-5" />
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">To</p>
+            <p className="text-xs text-muted-foreground mb-1.5">To</p>
             <select
               value={to}
               onChange={(e) => setTo(e.target.value as Bucket)}

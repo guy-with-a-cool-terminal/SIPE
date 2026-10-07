@@ -101,7 +101,7 @@ const Debts = () => {
       await supabase.from("debts")
         .update({ settled: true, settled_at: new Date().toISOString() })
         .eq("id", debt.id);
-      toast.success("Fully settled!");
+      toast.success("Fully settled");
     } else {
       toast.success(`Payment recorded · ${formatKES(rem - amount)} remaining`);
     }
@@ -291,15 +291,15 @@ const Debts = () => {
       {!loading && (iOwe.length > 0 || owedMe.length > 0) && (
         <div className="grid grid-cols-3 gap-3 mb-8">
           <div className="glass rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">I Owe</p>
+            <p className="text-xs text-muted-foreground">I owe</p>
             <p className="text-2xl font-bold mt-1 text-destructive">{formatKES(totalOwe)}</p>
           </div>
           <div className="glass rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Owed to Me</p>
+            <p className="text-xs text-muted-foreground">Owed to me</p>
             <p className="text-2xl font-bold mt-1 text-primary">{formatKES(totalOwed)}</p>
           </div>
           <div className="glass rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Net</p>
+            <p className="text-xs text-muted-foreground">Net</p>
             <p className={`text-2xl font-bold mt-1 ${net >= 0 ? "text-primary" : "text-destructive"}`}>
               {net >= 0 ? "+" : "−"}{formatKES(Math.abs(net))}
             </p>
@@ -314,7 +314,7 @@ const Debts = () => {
           {/* I Owe */}
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">I Owe</h2>
+              <h2 className="font-semibold">I owe</h2>
               <button
                 onClick={() => { setForm(emptyForm); setAddDir("owe"); }}
                 className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium"
@@ -336,7 +336,7 @@ const Debts = () => {
           {/* Owed to Me */}
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Owed to Me</h2>
+              <h2 className="font-semibold">Owed to me</h2>
               <button
                 onClick={() => { setForm(emptyForm); setAddDir("owed"); }}
                 className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium"

@@ -1,23 +1,18 @@
 import { Link } from "react-router-dom";
+import { Container } from "./Section";
 
 export const CTA = () => (
-  <section className="py-32">
-    <div className="mx-auto max-w-5xl px-6">
-      <div className="relative glass rounded-[2.5rem] p-14 md:p-20 text-center overflow-hidden animate-pulse-glow">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 size-[500px] bg-primary/20 rounded-full blur-3xl" />
-        <div className="relative">
-          <h2 className="font-display text-5xl md:text-7xl leading-tight">
-            Your next invoice<br />
-            <span className="text-gradient">deserves a plan.</span>
-          </h2>
-          <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto">
-            Three minutes to set up. A lifetime of less financial anxiety.
-          </p>
-          <Link to="/register" className="mt-10 inline-flex bg-primary text-primary-foreground px-8 py-4 rounded-full font-semibold hover:bg-primary-glow transition shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.6)]">
-            Create your free account
-          </Link>
+  <section className="pb-20 sm:pb-24">
+    <Container>
+      <div className="flex flex-col items-start justify-between gap-8 rounded-[24px] bg-primary px-8 py-12 sm:px-12 lg:flex-row lg:items-center">
+        <div>
+          <h2 className="text-3xl font-medium text-primary-foreground sm:text-[36px]">Set your split before the next payment lands.</h2>
+          <p className="mt-3 text-lg text-primary-foreground/85">It takes a few minutes, and you can change it whenever you like.</p>
         </div>
+        <Link to="/register" className="flex-shrink-0 rounded-full bg-white px-8 py-3.5 text-[17px] font-medium text-primary transition hover:bg-white/90">
+          Create your account
+        </Link>
       </div>
-    </div>
+    </Container>
   </section>
 );

@@ -5,7 +5,8 @@ doc, the screen is wrong. Keep this doc and the code in sync — when you change
 change it here.
 
 Sister docs:
-- [AVOIDING_AI_VIBES.md](./AVOIDING_AI_VIBES.md) — what makes software read as "vibe-coded" and how we avoid it.
+- [AVOIDING_AI_VIBES.md](./AVOIDING_AI_VIBES.md): what makes software read as "vibe-coded" and how we avoid it.
+- [AVOID_AI_DESIGN_TELLS.md](./AVOID_AI_DESIGN_TELLS.md): the rule set and pre-ship checklist for landing pages and new screens.
 - [RESPONSIVE.md](./RESPONSIVE.md) — breakpoints, the mobile/tablet/desktop contract, and the current audit.
 
 ---
@@ -35,48 +36,52 @@ All color lives as HSL channel triples in CSS custom properties in
 [`tailwind.config.ts`](../../tailwind.config.ts). **Never write a raw hex or `rgb()` in a
 component** except the fixed goal/account swatch palette (see §2.3).
 
-### 2.1 Core tokens (dark theme — the only theme today)
+### 2.1 Core tokens (light: the only theme)
+
+Changed 2026-10-07 from a dark, glassy, sky-blue theme to a light, flat one modelled on
+the Brian AI Studio marketing-site structure. Every text color below clears 4.5:1 on both
+`--background` and `--muted`.
 
 | Token | Value (HSL) | Use |
 |---|---|---|
-| `--background` | `222 47% 6%` | app canvas (also painted by `--gradient-hero`) |
-| `--foreground` | `200 30% 96%` | primary text |
-| `--card` | `222 40% 9%` | raised surfaces (rarely used raw — prefer `.glass`) |
-| `--muted` | `222 30% 12%` | inset fills |
-| `--muted-foreground` | `215 20% 65%` | secondary text, labels, captions |
-| `--secondary` | `222 35% 14%` | chips, toggles, hover fills |
-| `--primary` | `200 95% 70%` | the single accent — links, active nav, CTAs, positive money |
-| `--primary-glow` | `195 100% 78%` | primary hover only |
-| `--primary-foreground` | `222 47% 6%` | text/icons on a primary fill |
-| `--destructive` | `0 75% 60%` | overspend, delete, errors, negative reconciliation |
-| `--warning` | `45 100% 60%` | 80–99% of a limit; "approaching" states |
-| `--border` | `217 30% 18%` | all hairlines |
-| `--input` | `217 30% 16%` | form field fill |
-| `--ring` | `200 95% 70%` | focus ring |
+| `--background` | `0 0% 100%` | app canvas and page sections |
+| `--foreground` | `220 15% 13%` | primary text, headings |
+| `--card` | `0 0% 100%` | raised surfaces (via `.glass`) |
+| `--muted` | `220 14% 97.5%` | alternate section tint, sidebar, insets |
+| `--muted-foreground` | `218 9% 40%` | secondary text, labels, captions (6.0:1) |
+| `--secondary` | `220 14% 95%` | chips, toggles, hover fills |
+| `--primary` | `142 72% 29%` | logo green, the single accent: links, active nav, CTAs, positive money (5.1:1) |
+| `--primary-glow` | `143 64% 23%` | primary hover only (old name kept) |
+| `--primary-foreground` | `0 0% 100%` | text/icons on a primary fill |
+| `--ink` | `220 15% 10%` | the one dark section on the landing page (`bg-ink`) |
+| `--destructive` | `0 72% 42%` | overspend, delete, errors, negative reconciliation |
+| `--warning` | `32 95% 32%` | 80–99% of a limit; "approaching" states |
+| `--border` | `220 13% 90%` | all hairlines |
+| `--input` | `0 0% 100%` | form field fill (with a `border-border` edge) |
+| `--ring` | `142 72% 29%` | focus ring |
 
 Semantics:
-- **Primary is the only accent.** Green is not in the palette; "positive" money is
-  `text-primary`, not green. (The one exception, `text-green-500` in
-  `AddExpenseModal`, is a bug — it should be `text-primary`.)
+- **Primary green is the only accent.** No second brand color, no blue accents. "Positive"
+  money is `text-primary`.
 - **Destructive is reserved** for money the user has lost control of (overspent bucket,
   failed reconciliation) and for irreversible actions. Don't use it for validation hints
-  that the user can still fix in place — use `text-warning` or plain `text-muted-foreground`.
+  that the user can still fix in place; use `text-warning` or plain `text-muted-foreground`.
 
 ### 2.2 Bucket colors
 
-The four SIPE buckets each have a fixed hue. These are identity colors — do not
-substitute, reorder, or theme them.
+The four SIPE buckets each have a fixed hue, darkened for a white background. These are
+identity colors: do not substitute, reorder, or theme them.
 
-| Bucket | Token | Hue | Meaning |
+| Bucket | Token | Value | Meaning |
 |---|---|---|---|
-| S — Savings | `--bucket-s` | `195 100% 70%` icy blue | cushion |
-| I — Invest | `--bucket-i` | `175 80% 60%` teal | compounding |
-| P — Pay yourself | `--bucket-p` | `220 95% 75%` periwinkle | salary |
-| E — Expenses | `--bucket-e` | `260 75% 75%` lavender | bills |
+| S, Savings | `--bucket-s` | `192 82% 30%` deep cyan | cushion |
+| I, Invest | `--bucket-i` | `84 70% 27%` olive | compounding |
+| P, Pay yourself | `--bucket-p` | `226 64% 42%` logo navy | salary |
+| E, Expenses | `--bucket-e` | `15 75% 38%` clay | bills |
 
-Usage pattern (already consistent across the app, keep it): a rounded square badge with
-the bucket letter, `backgroundColor: hsl(var(--bucket-x) / 0.15)` and
-`color: hsl(var(--bucket-x))`. Pull names/colors from `BUCKET_META`, never re-type them.
+Usage pattern: a rounded square badge with the bucket letter,
+`backgroundColor: hsl(var(--bucket-x) / 0.15)` and `color: hsl(var(--bucket-x))`. Pull
+names/colors from `BUCKET_META`, never re-type them.
 
 ### 2.3 Fixed swatch palette
 
@@ -90,15 +95,14 @@ hex (user-chosen labels, not theme tokens). Keep the two lists identical:
 Today this is duplicated in `GoalModal.tsx` and `AccountModal.tsx`. It should move to
 `src/lib/swatches.ts` and be imported by both.
 
-### 2.4 Gradients & effects
+### 2.4 Surfaces and effects
 
-- `--gradient-hero` — fixed on `body`, the ambient background. Don't add competing
-  page-level gradients.
-- `.glass` — the standard raised surface: `--gradient-card` + `backdrop-blur(20px)` +
-  1px border. This is the default container for cards, modals, and panels.
-- `.glow` / `.animate-pulse-glow` — landing page only. Never in the app shell.
-- `.noise` — landing page only.
-- `.text-gradient` — marketing headlines only. App headings are solid `foreground`.
+- No gradients, glows, blur or noise anywhere. They were removed on 2026-10-07 along with
+  `--gradient-*`, `.glow`, `.noise`, `.text-gradient` and the `float` / `pulse-glow` animations.
+- `.glass` is now simply the standard raised surface: white `--card` fill plus a 1px
+  `--border`. The name is kept so existing panels didn't need touching.
+- Shadows: none on panels. A soft neutral shadow is allowed only on floating layers
+  (menus, dialogs, the invoice paper preview).
 
 ---
 
@@ -122,7 +126,7 @@ One family: **Inter** (loaded via Google Fonts `@import` in `index.css`), fallba
 | Section heading (`h2`) | `text-base font-semibold` | inside a page |
 | Card title | `text-sm font-medium` | |
 | Body | `text-sm` | the app's default reading size |
-| Caption / label | `text-xs text-muted-foreground` | often `uppercase tracking-wide` |
+| Caption / label | `text-xs text-muted-foreground` | sentence case. No ALL CAPS labels (removed 2026-10-07) |
 | Big number (KPI) | `text-2xl font-bold tabular-nums` | `text-xl` inside a 4-up grid |
 | Marketing `h1` | `text-4xl sm:text-5xl lg:text-7xl` | landing + auth only |
 
@@ -145,7 +149,7 @@ Tailwind's default 4px scale. In practice SIPE uses a small vocabulary — stay 
 - **Card padding:** `p-4` (dense: dashboard tiles), `p-5` (standard), `p-6` (roomy: link cards).
 - **Stacked form fields:** `space-y-4`.
 - **Section rhythm on a page:** `mb-5` to `mb-8` between blocks.
-- **Radius:** `--radius` is `1rem`. Use `rounded-xl` (12px) for controls/inputs/small
+- **Radius:** `--radius` is `0.75rem` (was `1rem`). Use `rounded-xl` (12px) for controls/inputs/small
   cards, `rounded-2xl` (16px) for panels, `rounded-3xl` for modals. `rounded-full` for
   pills, badges, and the primary CTA buttons.
 

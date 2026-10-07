@@ -118,7 +118,7 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
               <label className="block">
                 <span className="text-sm text-muted-foreground">Route</span>
                 <select value={routeKind} onChange={(e) => setRouteKind(e.target.value as "" | "ops" | "costs")} className={field}>
-                  <option value="">— none —</option>
+                  <option value="">None</option>
                   <option value="ops">ops</option>
                   <option value="costs">costs</option>
                 </select>
@@ -152,7 +152,7 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account }: Props)
             <div onClick={() => setIsDefault((v) => !v)} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${isDefault ? "bg-primary" : "bg-secondary"}`}>
               <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform ${isDefault ? "translate-x-5" : ""}`} />
             </div>
-            <span className="text-sm text-muted-foreground">Default account — receives Paystack / webhook income</span>
+            <span className="text-sm text-muted-foreground">Default account: receives Paystack income</span>
           </label>
 
           <label className="block">

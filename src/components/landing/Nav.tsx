@@ -1,23 +1,28 @@
 import { Link } from "react-router-dom";
+import { Container } from "./Section";
+
+export const Logo = () => (
+  <Link to="/" className="flex items-center gap-2">
+    <img src="/logo.png" alt="" className="size-8" />
+    <span className="text-xl font-bold tracking-tight text-foreground">sipe</span>
+  </Link>
+);
 
 export const Nav = () => (
-  <nav className="fixed top-0 inset-x-0 z-50">
-    <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
-      <Link to="/" className="flex items-center gap-2">
-        <img src="/logo.png" alt="" className="size-9" />
-        <span className="font-display text-2xl">sipe</span>
-      </Link>
-      <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-        <a href="#how" className="hover:text-foreground transition">How it works</a>
-        <a href="#buckets" className="hover:text-foreground transition">Buckets</a>
-        <a href="#story" className="hover:text-foreground transition">Why sipe</a>
-      </div>
-      <div className="flex items-center gap-3">
-        <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition">Log in</Link>
-        <Link to="/register" className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-full font-medium hover:bg-primary-glow transition">
-          Get sipe
+  <header className="border-b border-border bg-muted">
+    <Container className="flex h-[72px] items-center justify-between gap-4">
+      <Logo />
+      <nav className="hidden items-center gap-10 text-[15px] text-foreground md:flex" aria-label="Main">
+        <a href="#split" className="transition hover:text-primary">How the split works</a>
+        <a href="#invoicing" className="transition hover:text-primary">Invoicing</a>
+        <a href="#faq" className="transition hover:text-primary">FAQ</a>
+      </nav>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <Link to="/login" className="px-2 py-2 text-[15px] text-foreground transition hover:text-primary">Log in</Link>
+        <Link to="/register" className="rounded-full bg-primary px-5 py-2.5 text-[15px] font-medium text-primary-foreground transition hover:bg-primary-glow">
+          Create account
         </Link>
       </div>
-    </div>
-  </nav>
+    </Container>
+  </header>
 );

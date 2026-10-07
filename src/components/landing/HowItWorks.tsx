@@ -1,28 +1,26 @@
+import { Container, SectionHeading } from "./Section";
+
 const steps = [
-  { n: "01", t: "Connect Paystack", d: "Plug in your Paystack account in under a minute. We listen for incoming payments via secure webhooks." },
-  { n: "02", t: "Set your split", d: "Decide what % of every shilling goes to Savings, Invest, Pay yourself, and Expenses. Change it anytime." },
-  { n: "03", t: "Get paid, get sorted", d: "Every payment is auto-allocated the moment it lands. Your dashboard updates live. You go back to working." },
+  { title: "Quote", body: "Send a quote with your name, KRA PIN and logo. When the client accepts, it becomes an invoice in one click." },
+  { title: "Get paid", body: "Clients pay by M-Pesa, bank or a Paystack link. Paystack payments are recorded on their own; anything else takes a few taps." },
+  { title: "Split", body: "The payment is divided into your four buckets straight away, against the account it landed in." },
+  { title: "Spend on purpose", body: "Expenses are logged against a bucket, so before you pay a bill you can see what is left for it." },
 ];
 
 export const HowItWorks = () => (
-  <section id="how" className="py-32 relative">
-    <div className="mx-auto max-w-6xl px-6">
-      <div className="max-w-2xl mb-20">
-        <p className="text-sm uppercase tracking-[0.2em] text-primary mb-4">How it works</p>
-        <h2 className="font-display text-5xl md:text-6xl leading-tight">
-          Set it once.<br />
-          <span className="text-gradient">Forget</span> forever.
-        </h2>
-      </div>
-      <div className="space-y-px">
+  <section className="py-20 sm:py-24">
+    <Container>
+      <SectionHeading title="From quote to salary" sub="SIPE follows the money from the first quote to the day you pay yourself." />
+      <ol className="relative mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <div className="absolute left-0 right-0 top-[7px] hidden h-px bg-border lg:block" aria-hidden />
         {steps.map((s) => (
-          <div key={s.n} className="grid md:grid-cols-[120px,1fr,2fr] gap-6 items-start py-10 border-t border-border group">
-            <span className="font-display text-5xl text-muted-foreground group-hover:text-primary transition-colors">{s.n}</span>
-            <h3 className="font-display text-3xl">{s.t}</h3>
-            <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">{s.d}</p>
-          </div>
+          <li key={s.title} className="relative">
+            <span className="relative block size-[15px] rounded-full border-[3px] border-primary bg-background" aria-hidden />
+            <h3 className="mt-6 text-2xl font-semibold">{s.title}</h3>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
+          </li>
         ))}
-      </div>
-    </div>
+      </ol>
+    </Container>
   </section>
 );

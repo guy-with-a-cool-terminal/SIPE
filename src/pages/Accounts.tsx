@@ -145,12 +145,12 @@ const Accounts = () => {
       {!loading && active.length > 0 && (
         <div className="grid sm:grid-cols-2 gap-3 mb-8">
           <div className="glass rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total cash</p>
+            <p className="text-xs text-muted-foreground">Total cash</p>
             <p className={`text-2xl font-bold mt-1 ${totalCash < 0 ? "text-destructive" : ""}`}>{formatKES(totalCash)}</p>
             <p className="text-xs text-muted-foreground mt-1">{active.length} account{active.length !== 1 ? "s" : ""}</p>
           </div>
           <div className="glass rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Reconciliation</p>
+            <p className="text-xs text-muted-foreground">Reconciliation</p>
             <div className="flex items-center gap-2 mt-1 text-sm flex-wrap">
               <span className="tabular-nums">Accounts {formatKES(totalCash)}</span>
               <span className="text-muted-foreground">·</span>
@@ -259,9 +259,9 @@ const Accounts = () => {
                   return (
                     <div key={x.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate">{fromA?.name ?? "—"}</span>
+                        <span className="truncate">{fromA?.name ?? "–"}</span>
                         <ArrowRight className="size-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="truncate">{toA?.name ?? "—"}</span>
+                        <span className="truncate">{toA?.name ?? "–"}</span>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         {Number(x.fee) > 0 && <span className="text-xs text-muted-foreground">fee {formatKES(Number(x.fee))}</span>}

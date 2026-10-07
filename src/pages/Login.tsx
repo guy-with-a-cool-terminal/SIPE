@@ -24,8 +24,8 @@ const Login = () => {
 
   return (
     <AuthLayout
-      title="Welcome back."
-      subtitle="Pick up where your money left off."
+      title="Log in"
+      subtitle="See what each bucket holds today."
       footer={<>New to sipe? <Link to="/register" className="text-primary hover:underline">Create an account</Link></>}
     >
       <form className="space-y-5" onSubmit={onSubmit}>

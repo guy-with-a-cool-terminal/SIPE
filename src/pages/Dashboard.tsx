@@ -332,7 +332,7 @@ const Dashboard = () => {
       {/* Summary row — always 3 cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div className="glass rounded-xl p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Balance</p>
+          <p className="text-xs text-muted-foreground">Balance</p>
           <p className={`text-2xl font-bold mt-1 ${totalBalance < 0 ? "text-destructive" : ""}`}>
             {formatKES(totalBalance)}
           </p>
@@ -348,13 +348,13 @@ const Dashboard = () => {
           )}
         </div>
         <div className="glass rounded-xl p-4">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ArrowDownRight className="size-3 text-primary" /> In {periodLabel}
           </div>
           <p className="text-2xl font-bold mt-1">{formatKES(displayIncome)}</p>
         </div>
         <div className="glass rounded-xl p-4">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ArrowUpRight className="size-3" /> Out {periodLabel}
           </div>
           <p className="text-2xl font-bold mt-1">{formatKES(displaySpend)}</p>
@@ -370,7 +370,7 @@ const Dashboard = () => {
       {cashByLocation.length > 0 && (
         <div className="glass rounded-xl p-4 mb-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Wallet className="size-3" /> Cash by location
             </div>
             <Link to="/accounts" className="text-xs text-primary hover:text-primary/80 font-medium">Manage →</Link>

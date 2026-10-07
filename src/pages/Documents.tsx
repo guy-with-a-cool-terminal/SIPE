@@ -135,7 +135,7 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {stats.map((s) => (
           <div key={s.label} className="glass rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</p>
+            <p className="text-xs text-muted-foreground">{s.label}</p>
             <p className={cn("mt-1 text-xl font-bold tabular-nums", "warn" in s && s.warn && "text-destructive")}>{s.value}</p>
             <p className="text-xs text-muted-foreground">{s.sub}</p>
           </div>

@@ -57,7 +57,7 @@ export function DataList<T>({
 
       <div className={cn(tableHidden, "overflow-x-auto")}>
         <table className="w-full text-sm">
-          <thead className="bg-secondary/40 text-muted-foreground text-xs uppercase tracking-wider">
+          <thead className="bg-secondary/40 text-muted-foreground text-xs">
             <tr>
               {columns.map((c, i) => (
                 <th

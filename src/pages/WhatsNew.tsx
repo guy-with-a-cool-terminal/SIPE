@@ -43,7 +43,7 @@ const WhatsNewPage = () => {
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 pb-24 md:pb-10">
       <div className="flex items-center gap-2 text-primary mb-1">
         <Sparkles className="size-5" />
-        <span className="text-xs font-semibold uppercase tracking-wide">What's new</span>
+        <span className="text-xs font-semibold">What's new</span>
       </div>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8">Product updates</h1>
 

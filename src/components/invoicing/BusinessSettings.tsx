@@ -273,7 +273,7 @@ export const BusinessSettings = () => {
       </div>
 
       <aside className="hidden 2xl:block sticky top-6">
-        <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Preview</p>
+        <p className="mb-2 text-xs text-muted-foreground">Preview</p>
         <div className="overflow-hidden rounded-lg">
           <PaperFrame>
             <DocumentPaper

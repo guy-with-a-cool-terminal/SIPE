@@ -6,62 +6,58 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 200 30% 96%;
+    /* Light, flat, one accent. See docs/design/DESIGN_SYSTEM.md §2.
+       Every text color here clears 4.5:1 on both --background and --muted. */
+    --background: 0 0% 100%;
+    --foreground: 220 15% 13%;
 
-    --card: 222 40% 9%;
-    --card-foreground: 200 30% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 13%;
 
-    --popover: 222 40% 9%;
-    --popover-foreground: 200 30% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 13%;
 
-    --primary: 200 95% 70%;
-    --primary-foreground: 222 47% 6%;
-    --primary-glow: 195 100% 78%;
+    /* Logo green: the one accent. Buttons, links, active nav, positive money. */
+    --primary: 142 72% 29%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 143 64% 23%;  /* hover only (name kept for existing classes) */
 
-    --secondary: 222 35% 14%;
-    --secondary-foreground: 200 30% 96%;
+    --secondary: 220 14% 95%;
+    --secondary-foreground: 220 15% 13%;
 
-    --muted: 222 30% 12%;
-    --muted-foreground: 215 20% 65%;
+    /* --muted doubles as the alternate section / inset tint */
+    --muted: 220 14% 97.5%;
+    --muted-foreground: 218 9% 40%;
 
-    --accent: 200 95% 70%;
-    --accent-foreground: 222 47% 6%;
+    --accent: 142 72% 29%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --warning: 45 100% 60%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 32 95% 32%;
 
-    --border: 217 30% 18%;
-    --input: 217 30% 16%;
-    --ring: 200 95% 70%;
+    --border: 220 13% 90%;
+    --input: 0 0% 100%;
+    --ring: 142 72% 29%;
 
-    /* Bucket colors */
-    --bucket-s: 195 100% 70%;   /* Savings - icy blue */
-    --bucket-i: 175 80% 60%;    /* Invest - teal */
-    --bucket-p: 220 95% 75%;    /* Pay yourself - periwinkle */
-    --bucket-e: 260 75% 75%;    /* Expenses - lavender */
+    /* Ink: the dark section / dark surface color */
+    --ink: 220 15% 10%;
 
-    --gradient-hero: radial-gradient(ellipse at 50% 0%, hsl(200 95% 30% / 0.35), transparent 60%),
-                     radial-gradient(ellipse at 80% 60%, hsl(220 80% 20% / 0.4), transparent 50%),
-                     linear-gradient(180deg, hsl(222 47% 6%), hsl(222 50% 4%));
-    --gradient-text: linear-gradient(135deg, hsl(200 100% 88%), hsl(200 95% 65%));
-    --gradient-card: linear-gradient(160deg, hsl(222 40% 11% / 0.8), hsl(222 50% 7% / 0.6));
+    /* Bucket identity colors, darkened for a light background */
+    --bucket-s: 192 82% 30%;   /* Savings - deep cyan */
+    --bucket-i: 84 70% 27%;    /* Invest - olive */
+    --bucket-p: 226 64% 42%;   /* Pay yourself - logo navy */
+    --bucket-e: 15 75% 38%;    /* Expenses - clay */
 
-    --shadow-glow: 0 0 80px hsl(200 95% 60% / 0.25);
-    --shadow-card: 0 20px 60px -20px hsl(222 80% 2% / 0.8);
-
-    --radius: 1rem;
+    --radius: 0.75rem;
   }
 }
 
 @layer base {
   * { @apply border-border; }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
-    background: var(--gradient-hero);
-    background-attachment: fixed;
   }
   h1, h2, h3, .font-display {
     font-family: 'Inter', system-ui, sans-serif;
@@ -104,51 +100,13 @@
 }
 
 @layer utilities {
-  .text-gradient {
-    background: var(--gradient-text);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
+  /* The standard raised surface: white, 1px border, no blur or glow.
+     Name kept so every existing panel picked up the flat look in one place. */
   .glass {
-    background: var(--gradient-card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
   }
-  .glow {
-    box-shadow: var(--shadow-glow);
-  }
-  .noise::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
-    opacity: 0.04;
-    pointer-events: none;
-    mix-blend-mode: overlay;
-  }
 }
-
-@keyframes float-up {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 40px hsl(200 95% 60% / 0.2); }
-  50% { box-shadow: 0 0 80px hsl(200 95% 60% / 0.45); }
-}
-.animate-float { animation: float-up 6s ease-in-out infinite; }
-.animate-fade-up { animation: fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
 
 /* Print: only the quote / invoice paper. App chrome carries `print:hidden`.
    The first page bleeds the header band to the top edge; later pages get a margin. */

@@ -47,6 +47,8 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        ink: "hsl(var(--ink))",
+        warning: "hsl(var(--warning))",
         bucket: {
           s: "hsl(var(--bucket-s))",
           i: "hsl(var(--bucket-i))",

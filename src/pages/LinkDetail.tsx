@@ -81,7 +81,7 @@ const LinkDetail = () => {
             <p className="text-sm text-muted-foreground mt-3">Charge amount: <span className="text-foreground font-semibold">{formatKES(Number(link.amount))}</span></p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Collected</p>
+            <p className="text-xs text-muted-foreground">Collected</p>
             <p className="text-3xl font-bold text-primary">{formatKES(total)}</p>
             <p className="text-xs text-muted-foreground mt-1">{parents.length} payment{parents.length === 1 ? "" : "s"}</p>
           </div>

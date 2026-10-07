@@ -40,7 +40,7 @@ export const AdjustBalanceModal = ({ open, onClose, onSaved, userId, accounts, b
     if (saving) return;
     if (!accountId) return toast.error("Pick an account");
     if (actualNum === null || Number.isNaN(actualNum)) return toast.error("Enter the actual balance");
-    if (delta === 0) return toast.error("Balance already matches — nothing to adjust");
+    if (delta === 0) return toast.error("Balance already matches, nothing to adjust");
 
     setSaving(true);
     const { error } = await supabase.from("account_adjustments").insert({

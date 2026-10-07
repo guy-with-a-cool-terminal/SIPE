@@ -74,7 +74,7 @@ export const AppShell = () => {
     <div className="min-h-screen flex">
       {/* ---------- Desktop sidebar ---------- */}
       <aside
-        className={`hidden md:flex print:!hidden flex-col border-r border-border bg-card/40 backdrop-blur transition-[width] duration-200 overflow-hidden ${
+        className={`hidden md:flex print:!hidden flex-col border-r border-border bg-muted transition-[width] duration-200 overflow-hidden ${
           collapsed ? "w-14" : "w-52"
         }`}
       >
@@ -112,7 +112,7 @@ export const AppShell = () => {
             {group && links[i - 1]?.group !== group && (
               collapsed
                 ? <div className="mx-auto my-2 h-px w-6 bg-border" />
-                : <p className="px-3 pt-4 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{group}</p>
+                : <p className="px-3 pt-4 pb-1 text-[11px] font-medium text-muted-foreground/70">{group}</p>
             )}
             {!group && links[i - 1]?.group && (collapsed ? <div className="mx-auto my-2 h-px w-6 bg-border" /> : <div className="h-3" />)}
             <NavLink
@@ -123,7 +123,7 @@ export const AppShell = () => {
                   collapsed ? "px-0 justify-center" : "px-3"
                 } ${
                   isActive
-                    ? "bg-primary/15 text-primary"
+                    ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`
               }
@@ -172,7 +172,7 @@ export const AppShell = () => {
 
       <main className="flex-1 min-w-0 [padding-left:env(safe-area-inset-left)] [padding-right:env(safe-area-inset-right)]">
         {/* ---------- Mobile top bar ---------- */}
-        <div className="md:hidden print:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/85 backdrop-blur px-4 h-14 [padding-top:env(safe-area-inset-top)]">
+        <div className="md:hidden print:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background px-4 h-14 [padding-top:env(safe-area-inset-top)]">
           <Link to="/dashboard" className="flex items-center gap-2">
             <img src="/logo.png" alt="" className="size-7" />
             <span className="font-bold">sipe</span>
@@ -185,7 +185,7 @@ export const AppShell = () => {
 
         {/* ---------- Mobile bottom nav ---------- */}
         <nav
-          className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch border-t border-border bg-background/95 backdrop-blur [padding-bottom:env(safe-area-inset-bottom)]"
+          className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch border-t border-border bg-background [padding-bottom:env(safe-area-inset-bottom)]"
           aria-label="Primary"
         >
           {primaryLinks.map(({ to, label, icon: Icon }) => (
@@ -230,7 +230,7 @@ export const AppShell = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
                     isActive
-                      ? "bg-primary/15 text-primary"
+                      ? "bg-primary/10 text-primary font-medium"
                       : "text-foreground hover:bg-secondary"
                   }`
                 }
@@ -246,7 +246,7 @@ export const AppShell = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
                     isActive
-                      ? "bg-primary/15 text-primary"
+                      ? "bg-primary/10 text-primary font-medium"
                       : "text-foreground hover:bg-secondary"
                   }`
                 }

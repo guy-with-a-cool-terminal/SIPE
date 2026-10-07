@@ -1,21 +1,29 @@
 import { Nav } from "@/components/landing/Nav";
 import { Hero } from "@/components/landing/Hero";
-import { Buckets } from "@/components/landing/Buckets";
+import { Problem } from "@/components/landing/Problem";
+import { Split } from "@/components/landing/Split";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { Story } from "@/components/landing/Story";
+import { Invoicing } from "@/components/landing/Invoicing";
+import { Features } from "@/components/landing/Features";
+import { Faq } from "@/components/landing/Faq";
 import { CTA } from "@/components/landing/CTA";
 import { Footer } from "@/components/landing/Footer";
 
 const Index = () => (
-  <main className="relative noise">
+  <>
     <Nav />
-    <Hero />
-    <Story />
-    <Buckets />
-    <HowItWorks />
-    <CTA />
+    <main>
+      <Hero />
+      <Problem />
+      <Split />
+      <HowItWorks />
+      <Invoicing />
+      <Features />
+      <Faq />
+      <CTA />
+    </main>
     <Footer />
-  </main>
+  </>
 );
 
 export default Index;

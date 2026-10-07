@@ -186,6 +186,19 @@ Spec: [../design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md),
 - ⬜ Next: email a document to the client (Resend), client "Accept quote" button on the public page,
   Paystack page per invoice with webhook auto-reconcile, KRA eTIMS API, recurring invoices, receipts.
 
+## Commercial redesign (2026-10-07)
+
+- ✅ Light, flat theme: white canvas, logo-green single accent, darker bucket hues for a light
+  background, all text colors ≥ 4.5:1. Gradients, glows, blur, noise and float/pulse animations
+  removed; `.glass` is now a plain bordered white surface.
+- ✅ Landing rebuilt on the Assets-System marketing-site structure: problem-led hero, proof strip,
+  ruled columns instead of icon cards, an accurate split diagram (was an animated fake dashboard),
+  marker-line steps (was 01/02/03), dark invoicing section showing the real `DocumentPaper`, FAQ,
+  flat CTA. Unverifiable claims removed ("Bank-grade security", "Free while you grow").
+- ✅ Auth pages light; right panel states the real default split.
+- ✅ App: ALL CAPS labels → sentence case; em dashes and hype taglines removed from UI copy.
+- ✅ Rules saved as `docs/design/AVOID_AI_DESIGN_TELLS.md`.
+
 ## Backlog (not being built now)
 
 **ops/costs API integrations.** Client projects (lexinon, toefl-academic `costs`, global-dream-link

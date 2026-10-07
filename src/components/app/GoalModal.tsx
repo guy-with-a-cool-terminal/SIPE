@@ -181,10 +181,10 @@ export const GoalModal = ({ open, onClose, onSaved, userId, goal, goals }: Props
             <label className="block">
               <span className="text-sm text-muted-foreground">Account</span>
               <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={field}>
-                <option value="">— pick an account —</option>
+                <option value="">Pick an account</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
-              {accounts.length === 0 && <span className="text-xs text-destructive mt-1 block">No accounts yet — add one on the Accounts tab first.</span>}
+              {accounts.length === 0 && <span className="text-xs text-destructive mt-1 block">No accounts yet. Add one on the Accounts page first.</span>}
             </label>
           )}
 

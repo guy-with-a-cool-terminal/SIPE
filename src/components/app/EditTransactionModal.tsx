@@ -103,7 +103,7 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
                 </div>
                 <div className="flex items-start gap-1.5 mt-1.5">
                   <Info className="size-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-muted-foreground">To correct the amount, delete this deposit and add a new one — re-splitting is required.</p>
+                  <p className="text-xs text-muted-foreground">To correct the amount, delete this deposit and add a new one, so it is split again.</p>
                 </div>
               </div>
               <label className="block">
@@ -112,12 +112,12 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
               </label>
               <label className="block">
                 <span className="text-sm text-muted-foreground">Source</span>
-                <input name="source" defaultValue={transaction.source || ""} placeholder="e.g. Client X — Logo design" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
+                <input name="source" defaultValue={transaction.source || ""} placeholder="e.g. Client X, logo design" className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary" />
               </label>
               <label className="block">
                 <span className="text-sm text-muted-foreground">Category</span>
                 <select name="category" defaultValue={transaction.category || ""} className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5">
-                  <option value="">— Select —</option>
+                  <option value="">Select</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </label>
@@ -131,7 +131,7 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
               {/* Split parent: show info note, allow editing total + meta */}
               <div className="flex items-start gap-1.5 p-3 bg-secondary/40 rounded-xl">
                 <Info className="size-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground">Split expense — you can edit the total and description here. To rebalance individual buckets, delete and re-enter.</p>
+                <p className="text-xs text-muted-foreground">Split expense. You can edit the total and description here. To rebalance individual buckets, delete and re-enter.</p>
               </div>
               <label className="block">
                 <span className="text-sm text-muted-foreground">Total amount (KES)</span>
@@ -182,7 +182,7 @@ export const EditTransactionModal = ({ transaction, onClose, onSaved }: Props) =
                 onChange={(e) => setAccountId(e.target.value)}
                 className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
               >
-                <option value="">— none —</option>
+                <option value="">None</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </label>

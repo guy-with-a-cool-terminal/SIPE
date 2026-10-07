@@ -39,3 +39,11 @@ export function depositPctContribution(amount: number, pct: number): number {
 function round2(n: number): number {
   return Number(n.toFixed(2));
 }
+
+/** The split new accounts start with (allocation_settings defaults). Shown on the landing and sign-in pages. */
+export const DEFAULT_SPLIT: { bucket: Bucket; pct: number; use: string }[] = [
+  { bucket: "S", pct: 20, use: "A cushion for slow months and the tax bill." },
+  { bucket: "I", pct: 15, use: "Money that should grow, kept apart from spending." },
+  { bucket: "P", pct: 50, use: "Your salary, paid to yourself on a schedule." },
+  { bucket: "E", pct: 15, use: "Tools, data, transport and the bills of doing the work." },
+];

@@ -178,7 +178,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
           {/* Quick-add from saved bills */}
           {templates.length > 0 && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Quick add bill</p>
+              <p className="text-xs text-muted-foreground mb-2">Quick add bill</p>
               <div className="flex flex-wrap gap-2">
                 {templates.map(t => (
                   <button
@@ -306,7 +306,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
                 >
                   {ALL_BUCKETS.map(b => (
                     <option key={b} value={b}>
-                      {BUCKET_META[b].name} — {formatKES(balances[b] ?? 0)} available
+                      {BUCKET_META[b].name}: {formatKES(balances[b] ?? 0)} available
                     </option>
                   ))}
                 </select>
@@ -352,7 +352,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
                 onChange={(e) => setAccountId(e.target.value)}
                 className="mt-1.5 w-full bg-input border border-border rounded-xl px-4 py-2.5"
               >
-                <option value="">— none —</option>
+                <option value="">None</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </label>

@@ -175,7 +175,7 @@ const Transactions = () => {
         t.category === "Transfer" ? (
           <span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">Transfer</span>
         ) : (
-          <span className="text-muted-foreground">{tab === "deposits" ? (t.source || "—") : (t.category || "—")}</span>
+          <span className="text-muted-foreground">{tab === "deposits" ? (t.source || "–") : (t.category || "–")}</span>
         ),
     },
     ...(tab === "expenses"
@@ -231,7 +231,7 @@ const Transactions = () => {
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
       <PageHeader
         title="Transactions"
-        subtitle="Every flow, in and out."
+        subtitle="Every payment in and every expense out."
         actions={
           <>
             <button

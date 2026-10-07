@@ -53,7 +53,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
     const body = await res.json();
     setSaving(false);
     if (!res.ok) return toast.error(body.error || "Failed to record deposit");
-    toast.success(`Deposited ${amount.toLocaleString("en-KE")} KES — split into your buckets`);
+    toast.success(`Deposited ${amount.toLocaleString("en-KE")} KES, split into your buckets`);
     onSaved?.();
     onClose();
   };
@@ -85,7 +85,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
             <label className="block">
               <span className="text-sm text-muted-foreground">Account (optional)</span>
               <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={field}>
-                <option value="">— none —</option>
+                <option value="">None</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </label>

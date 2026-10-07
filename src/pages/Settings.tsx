@@ -281,7 +281,7 @@ const SettingsPage = () => {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
-        <PageHeader title="Settings" subtitle="Tune your split. Tune your life." />
+        <PageHeader title="Settings" subtitle="Your split, business details, bills and email." />
         <CardGridSkeleton count={4} className="grid gap-4" />
       </div>
     );
@@ -289,7 +289,7 @@ const SettingsPage = () => {
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
-      <PageHeader title="Settings" subtitle="Tune your split. Tune your life." />
+      <PageHeader title="Settings" subtitle="Your split, business details, bills and email." />
 
       {/* Mobile: horizontal pill tabs */}
       <div className="md:hidden flex gap-1 p-1 bg-secondary/40 rounded-xl mb-6 max-w-full overflow-x-auto">

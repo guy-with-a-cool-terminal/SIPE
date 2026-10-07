@@ -49,7 +49,7 @@ export const WhatsNew = () => {
       <div>
         <div className="flex items-center gap-2 text-primary mb-3">
           <Sparkles className="size-4" />
-          <span className="text-xs font-semibold uppercase tracking-wide">What's new</span>
+          <span className="text-xs font-semibold">What's new</span>
         </div>
 
         <Markdown md={ann.body_md} />

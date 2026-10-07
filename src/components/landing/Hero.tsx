@@ -1,40 +1,48 @@
 import { Link } from "react-router-dom";
-import { SipeFlow } from "./SipeFlow";
+import { Container } from "./Section";
+
+const proof = [
+  "Every payment split the moment it is recorded",
+  "Paystack payments recorded on their own",
+  "Quotes and invoices under your business name",
+  "Built in Kenya, in shillings",
+];
 
 export const Hero = () => (
-  <section className="relative pt-40 pb-24 overflow-hidden">
-    <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-[1.1fr,1fr] gap-12 items-center">
-      <div className="animate-fade-up">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-muted-foreground mb-8">
-          <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-          For freelancers who get paid in lumps
-        </div>
-        <h1 className="text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight">
-          Money lands.<br />
-          <span className="text-gradient">sipe sorts it.</span>
+  <>
+    <section className="bg-background">
+      <Container className="py-20 text-center sm:py-28">
+        <h1 className="mx-auto max-w-[900px] text-[40px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[60px]">
+          Your income comes in lumps.<br className="hidden sm:block" />{" "}
+          <span className="text-primary">Your rent does not.</span>
         </h1>
-        <p className="mt-6 text-lg text-muted-foreground max-w-xl leading-relaxed">
-          Every payment that hits your account gets quietly split across four buckets (Savings, Invest, Pay yourself, Expenses) at the percentages you set. No spreadsheets. No guilt. Just intentional money.
+        <p className="mx-auto mt-7 max-w-[660px] text-lg leading-relaxed text-muted-foreground">
+          SIPE divides every payment you receive into Savings, Investments, Pay yourself and Expenses at the
+          percentages you choose. A KES 120,000 invoice becomes a month of salary, a tax set-aside and money for
+          bills, instead of three good weeks.
         </p>
-        <div className="mt-10 flex flex-wrap items-center gap-4">
-          <Link to="/register" className="bg-primary text-primary-foreground px-7 py-3.5 rounded-full font-semibold hover:bg-primary-glow transition shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.6)]">
-            Start splitting
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <Link to="/register" className="rounded-full bg-primary px-8 py-3.5 text-[17px] font-medium text-primary-foreground transition hover:bg-primary-glow">
+            Create your account
           </Link>
-          <a href="#how" className="px-7 py-3.5 rounded-full glass font-medium hover:bg-secondary transition">
-            See how it works
+          <a href="#split" className="rounded-full border-2 border-foreground px-8 py-3 text-[17px] text-foreground transition hover:border-primary hover:text-primary">
+            See how the split works
           </a>
         </div>
-        <div className="mt-12 flex items-center gap-6 text-xs text-muted-foreground">
-          <span>Built for Paystack</span>
-          <span className="size-1 rounded-full bg-border" />
-          <span>Bank-grade security</span>
-          <span className="size-1 rounded-full bg-border" />
-          <span>Free while you grow</span>
-        </div>
-      </div>
-      <div className="relative">
-        <SipeFlow />
-      </div>
-    </div>
-  </section>
+      </Container>
+    </section>
+
+    <section className="border-y border-border bg-background">
+      <ul className="mx-auto grid max-w-[1160px] grid-cols-1 px-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+        {proof.map((text, i) => (
+          <li
+            key={text}
+            className={`py-5 text-[15px] font-medium text-foreground sm:py-7 sm:pr-6 ${i > 0 ? "border-t border-border sm:border-t-0" : ""} ${i % 2 === 1 ? "sm:border-l sm:border-border sm:pl-6" : ""} ${i === 2 ? "lg:border-l lg:pl-6" : ""}`}
+          >
+            {text}
+          </li>
+        ))}
+      </ul>
+    </section>
+  </>
 );

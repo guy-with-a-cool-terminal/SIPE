@@ -47,7 +47,7 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
 
         {/* Amount */}
         <div className="mb-6">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Amount</p>
+          <p className="text-xs text-muted-foreground mb-1">Amount</p>
           <p className={`text-3xl font-bold ${transaction.type === "income" ? "text-primary" : ""}`}>
             {transaction.type === "income" ? "+" : "−"}{formatKES(Number(transaction.amount))}
           </p>
@@ -57,25 +57,25 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
         <div className="space-y-4 mb-6">
           {transaction.description && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Description</p>
+              <p className="text-xs text-muted-foreground mb-1">Description</p>
               <p className="text-sm">{transaction.description}</p>
             </div>
           )}
           {transaction.category && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Category</p>
+              <p className="text-xs text-muted-foreground mb-1">Category</p>
               <p className="text-sm">{transaction.category}</p>
             </div>
           )}
           {isDeposit && transaction.source && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Source</p>
+              <p className="text-xs text-muted-foreground mb-1">Source</p>
               <p className="text-sm">{transaction.source}</p>
             </div>
           )}
           {!showBreakdown && transaction.bucket && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bucket</p>
+              <p className="text-xs text-muted-foreground mb-1">Bucket</p>
               <span
                 className="inline-block px-2 py-0.5 rounded-full text-xs"
                 style={{
@@ -92,12 +92,12 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
         {/* Split breakdown */}
         {showBreakdown && (
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               {isDeposit ? "Bucket allocations" : "Split breakdown"}
             </p>
             {children.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No allocation data found — this may be a legacy deposit.
+                No allocation data found. This may be an older deposit.
               </p>
             ) : (
               <div className="rounded-xl overflow-hidden border border-border">
@@ -120,7 +120,7 @@ export const TransactionDetailSheet = ({ transaction, allRows, onClose }: Props)
                             {child.bucket}
                           </span>
                         )}
-                        <span className="text-sm">{meta ? meta.name : "—"}</span>
+                        <span className="text-sm">{meta ? meta.name : "–"}</span>
                       </div>
                       <div className="text-right">
                         {isDeposit && Number(transaction.amount) > 0 && (

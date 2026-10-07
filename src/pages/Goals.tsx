@@ -188,7 +188,7 @@ const Goals = () => {
       {!loading && totals.count > 0 && (
         <div className="glass rounded-2xl p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Across {totals.count} goal{totals.count !== 1 ? "s" : ""} in progress
             </p>
             <p className="text-xs text-muted-foreground tabular-nums">
@@ -266,7 +266,7 @@ const Goals = () => {
             return (
               <div
                 key={g.id}
-                className={`glass rounded-2xl p-5 flex flex-col ${achieved ? "border border-primary/30 bg-gradient-to-br from-primary/5 to-transparent" : ""} ${g.status === "archived" || g.status === "paused" ? "opacity-60" : ""}`}
+                className={`glass rounded-2xl p-5 flex flex-col ${achieved ? "border-primary/40 bg-primary/[0.04]" : ""} ${g.status === "archived" || g.status === "paused" ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
