@@ -23,7 +23,7 @@ const EMPTY: Form = {
   bank_name: "", bank_branch: "", bank_account_name: "", bank_account_number: "", bank_swift: "",
   mpesa_paybill: "", mpesa_account: "", mpesa_till: "", mpesa_phone: "", payment_note: "",
   invoice_prefix: "INV", quote_prefix: "QT", next_invoice_seq: 1, next_quote_seq: 1,
-  default_due_days: 14, default_valid_days: 30,
+  default_due_days: 14, default_valid_days: 30, default_counts_as_income: true,
   invoice_notes: "", invoice_terms: "", quote_notes: "", quote_terms: "", quote_payment_terms: "",
   signatory_name: "", signatory_title: "", footer_text: "",
 };
@@ -243,6 +243,15 @@ export const BusinessSettings = () => {
             <Field label="Invoice due after (days)"><input className={field} type="number" min={0} value={f.default_due_days} onChange={(e) => set("default_due_days", e.target.value as unknown as number)} /></Field>
             <Field label="Quote valid for (days)"><input className={field} type="number" min={0} value={f.default_valid_days} onChange={(e) => set("default_valid_days", e.target.value as unknown as number)} /></Field>
           </Grid>
+          <label className="mt-4 flex items-start gap-3 rounded-xl border border-border p-3 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-[hsl(var(--primary))]" checked={f.default_counts_as_income} onChange={(e) => set("default_counts_as_income", e.target.checked)} />
+            <span>
+              Invoice payments count as my income
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Split into your buckets and included in analytics. Turn this off per invoice for pass-through money like brokerage deals.
+              </span>
+            </span>
+          </label>
           <div className="mt-4 space-y-4">
             <Field label="Quote payment terms"><textarea className={textarea} placeholder="50% deposit to start, balance on delivery." {...text("quote_payment_terms")} /></Field>
             <Field label="Quote notes"><textarea className={textarea} placeholder="Thank you for considering us for this project." {...text("quote_notes")} /></Field>

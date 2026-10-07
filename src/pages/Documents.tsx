@@ -8,7 +8,7 @@ import { formatKES } from "@/integrations/supabase/types";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ListSkeleton } from "@/components/app/Skeletons";
 import { DataList, type Column } from "@/components/app/DataList";
-import { StatusBadge } from "@/components/invoicing/StatusBadge";
+import { PassThroughBadge, StatusBadge } from "@/components/invoicing/StatusBadge";
 import { clientLabel, createDraft, useBusinessProfile, useDocuments, type DocumentRow } from "@/hooks/useInvoicing";
 import {
   KIND_LABEL, balanceDue, displayStatus, formatDocDate,
@@ -100,7 +100,7 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
       header: kind === "invoice" ? "Balance" : "Total", align: "right",
       cell: (r) => <span className="font-semibold tabular-nums">{formatKES(kind === "invoice" && r.status !== "draft" && r.status !== "void" ? balanceDue(r) : Number(r.total))}</span>,
     },
-    { header: "Status", cell: (r) => <StatusBadge status={r.display} /> },
+    { header: "Status", cell: (r) => <span className="flex items-center gap-1.5"><StatusBadge status={r.display} />{!r.counts_as_income && <PassThroughBadge />}</span> },
   ];
 
   const ready = !!profile?.legal_name;
@@ -187,7 +187,7 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
                   <span className="font-semibold tabular-nums">
                     {formatKES(kind === "invoice" && r.status !== "draft" && r.status !== "void" ? balanceDue(r) : Number(r.total))}
                   </span>
-                  <StatusBadge status={r.display} />
+                  <span className="flex items-center gap-1.5">{!r.counts_as_income && <PassThroughBadge />}<StatusBadge status={r.display} /></span>
                 </div>
               </div>
             )}

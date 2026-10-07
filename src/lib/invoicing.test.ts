@@ -75,11 +75,11 @@ describe("balanceDue / draftDefaults", () => {
 
   it("prefills from the business profile", () => {
     const bp = {
-      default_due_days: 7, default_valid_days: 21, vat_registered: true, default_tax_rate: 16,
+      default_due_days: 7, default_valid_days: 21, default_counts_as_income: false, vat_registered: true, default_tax_rate: 16,
       invoice_notes: "Thanks", invoice_terms: null, quote_notes: "Q", quote_terms: "T", quote_payment_terms: "50% upfront",
     } as BusinessProfile;
-    expect(draftDefaults("invoice", bp, "2026-10-07")).toMatchObject({ due_date: "2026-10-14", notes: "Thanks", tax_rate: 16, payment_terms: null });
+    expect(draftDefaults("invoice", bp, "2026-10-07")).toMatchObject({ due_date: "2026-10-14", notes: "Thanks", tax_rate: 16, payment_terms: null, counts_as_income: false });
     expect(draftDefaults("quote", bp, "2026-10-07")).toMatchObject({ due_date: "2026-10-28", terms: "T", payment_terms: "50% upfront" });
-    expect(draftDefaults("invoice", null, "2026-10-07")).toMatchObject({ due_date: "2026-10-21", tax_rate: 0 });
+    expect(draftDefaults("invoice", null, "2026-10-07")).toMatchObject({ due_date: "2026-10-21", tax_rate: 0, counts_as_income: true });
   });
 });

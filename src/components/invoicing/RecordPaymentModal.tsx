@@ -32,18 +32,18 @@ export const RecordPaymentModal = ({ open, onClose, invoice, clientName, onSaved
   const [saving, setSaving] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState("");
-  const [split, setSplit] = useState(true);
+  const [split, setSplit] = useState(invoice.counts_as_income);
   const due = balanceDue(invoice);
 
   useEffect(() => {
     if (!open) return;
-    setSplit(true);
+    setSplit(invoice.counts_as_income);
     supabase.from("accounts").select("*").eq("archived", false).order("name").then(({ data }) => {
       const list: Account[] = data || [];
       setAccounts(list);
       setAccountId(list.find((a) => a.is_default)?.id ?? "");
     });
-  }, [open]);
+  }, [open, invoice.counts_as_income]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -123,7 +123,9 @@ export const RecordPaymentModal = ({ open, onClose, invoice, clientName, onSaved
           <span>
             Record as income and split into my buckets
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              Untick if this money is already in SIPE, so it isn't counted twice.
+              {invoice.counts_as_income
+                ? "Untick if this money is already in SIPE, so it isn't counted twice."
+                : "This invoice is pass-through, so payments stay out of your buckets and analytics."}
             </span>
           </span>
         </label>

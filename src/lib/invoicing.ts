@@ -39,6 +39,8 @@ export interface BusinessProfile {
   next_quote_seq: number;
   default_due_days: number;
   default_valid_days: number;
+  /** New documents count as income (split into buckets) unless set otherwise. */
+  default_counts_as_income: boolean;
   invoice_notes: string | null;
   invoice_terms: string | null;
   quote_notes: string | null;
@@ -53,7 +55,7 @@ export interface BusinessProfile {
 export type Issuer = Omit<
   BusinessProfile,
   | "user_id" | "next_invoice_seq" | "next_quote_seq" | "invoice_notes" | "invoice_terms"
-  | "quote_notes" | "quote_terms" | "quote_payment_terms"
+  | "quote_notes" | "quote_terms" | "quote_payment_terms" | "default_counts_as_income"
 >;
 
 export interface Client {
@@ -104,6 +106,8 @@ export interface SalesDocument {
   source_quote_id: string | null;
   public_token: string;
   payment_link_url: string | null;
+  /** false = pass-through money (brokerage, a float): payments never reach the buckets. */
+  counts_as_income: boolean;
   sent_at: string | null;
   accepted_at: string | null;
   paid_at: string | null;
@@ -267,6 +271,7 @@ export function draftDefaults(kind: DocumentKind, bp: BusinessProfile | null, to
     terms: (kind === "invoice" ? bp?.invoice_terms : bp?.quote_terms) ?? null,
     payment_terms: kind === "quote" ? bp?.quote_payment_terms ?? null : null,
     tax_rate: bp?.vat_registered ? Number(bp.default_tax_rate) : 0,
+    counts_as_income: bp?.default_counts_as_income ?? true,
   };
 }
 

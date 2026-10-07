@@ -181,6 +181,8 @@ Spec: [../design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md),
   preview, finalised view (PDF, share link, record payment, accept/decline, convert, duplicate, void,
   eTIMS no. + payment link), public `/d/:token`.
 - ✅ Recording an invoice payment runs `record-deposit` (S/I/P/E split) unless the money is already in SIPE.
+- ✅ Pass-through invoices (2026-10-08): per-document "Payments count as my income" toggle (default
+  in Settings › Business). Off = payments tracked on the invoice only, never in buckets/analytics.
 - ⬜ Next: email a document to the client (Resend), client "Accept quote" button on the public page,
   Paystack page per invoice with webhook auto-reconcile, KRA eTIMS API, recurring invoices, receipts.
 

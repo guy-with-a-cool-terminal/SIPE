@@ -19,3 +19,10 @@ export const StatusBadge = ({ status, className }: { status: DisplayStatus; clas
     {STATUS_LABEL[status]}
   </span>
 );
+
+/** Marks a quote / invoice whose payments don't count as income. */
+export const PassThroughBadge = () => (
+  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground whitespace-nowrap" title="Payments don't count as income">
+    Pass-through
+  </span>
+);

@@ -66,6 +66,7 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
         }))
       : [blankItem()],
   );
+  const [countsAsIncome, setCountsAsIncome] = useState(doc.counts_as_income ?? true);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<"edit" | "preview">("edit");
@@ -135,6 +136,7 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
     setSaving(true);
     const { error } = await supabase.from("documents").update({
       client_id: f.client_id || null,
+      counts_as_income: countsAsIncome,
       ...paperDoc,
       deliverables: paperDoc.deliverables,
     }).eq("id", doc.id);
@@ -264,6 +266,7 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
               <L label="Reference" hint="Client PO or your own ref"><input className={field} {...bind("reference")} /></L>
               {isInvoice && <L label="eTIMS invoice no." hint="If you also issued it on KRA eTIMS"><input className={field} {...bind("etims_number")} /></L>}
             </div>
+            <IncomeToggle checked={countsAsIncome} onChange={(v) => { setCountsAsIncome(v); setDirty(true); }} className="mt-4" />
           </Panel>
 
           <Panel title="Project">
@@ -381,6 +384,23 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
     </div>
   );
 };
+
+/** Income vs pass-through. Shared by the draft form and the finalised invoice view. */
+export const IncomeToggle = ({
+  checked, onChange, disabled, className = "",
+}: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; className?: string }) => (
+  <label className={`flex items-start gap-3 rounded-xl border border-border p-3 text-sm ${className}`}>
+    <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-4 accent-[hsl(var(--primary))]" />
+    <span>
+      Payments count as my income
+      <span className="mt-0.5 block text-xs text-muted-foreground">
+        {checked
+          ? "Split into your buckets and included in analytics."
+          : "Pass-through money (brokerage, a float): tracked on this invoice only, never in your buckets or analytics."}
+      </span>
+    </span>
+  </label>
+);
 
 const Panel = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="glass rounded-2xl p-5">

@@ -12,10 +12,10 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ConfirmDialog } from "@/components/app/ConfirmDialog";
 import { CardGridSkeleton } from "@/components/app/Skeletons";
-import { DocumentForm } from "@/components/invoicing/DocumentForm";
+import { DocumentForm, IncomeToggle } from "@/components/invoicing/DocumentForm";
 import { DocumentPaper, PaperFrame } from "@/components/invoicing/DocumentPaper";
 import { RecordPaymentModal } from "@/components/invoicing/RecordPaymentModal";
-import { StatusBadge } from "@/components/invoicing/StatusBadge";
+import { PassThroughBadge, StatusBadge } from "@/components/invoicing/StatusBadge";
 import { clientLabel, createDraft, useBusinessProfile } from "@/hooks/useInvoicing";
 import { field } from "@/lib/forms";
 import {
@@ -156,6 +156,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
         client_id: doc.client_id, title: doc.title, summary: doc.summary, deliverables: doc.deliverables,
         timeline: doc.timeline, payment_terms: doc.payment_terms, notes: doc.notes, terms: doc.terms,
         discount_type: doc.discount_type, discount_value: doc.discount_value, tax_rate: doc.tax_rate, tax_label: doc.tax_label,
+        counts_as_income: doc.counts_as_income,
       });
       if (items.length) {
         const { error } = await supabase.from("document_items").insert(items.map((i) => ({
@@ -189,7 +190,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
     <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10 print:p-0 print:max-w-none">
       <div className="print:hidden">
         <PageHeader
-          title={<span className="flex flex-wrap items-center gap-3">{doc.number}<StatusBadge status={status} className="text-sm" /></span>}
+          title={<span className="flex flex-wrap items-center gap-3">{doc.number}<StatusBadge status={status} className="text-sm" />{!doc.counts_as_income && <PassThroughBadge />}</span>}
           subtitle={<><Link to={label.path} className="hover:text-foreground transition">← All {label.many.toLowerCase()}</Link> · {name}</>}
           actions={
             <>
@@ -242,6 +243,17 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
                     </li>
                   ))}
                 </ul>
+              )}
+              {live && (
+                <IncomeToggle
+                  className="mt-4" disabled={busy} checked={doc.counts_as_income}
+                  onChange={(v) => update({ counts_as_income: v }, v ? "Future payments count as income" : "Marked as pass-through")}
+                />
+              )}
+              {payments.some((p) => p.transaction_id) && !doc.counts_as_income && (
+                <p className="mt-2 text-xs text-warning">
+                  Payments marked "split" are already in your buckets. Delete those deposits in Transactions to take them out.
+                </p>
               )}
             </Card>
           )}
