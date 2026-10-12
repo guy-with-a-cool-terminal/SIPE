@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 import { BusinessSettings } from "@/components/invoicing/BusinessSettings";
+import { ChangePassword } from "@/components/app/ChangePassword";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
@@ -346,6 +347,7 @@ const SettingsPage = () => {
               <button onClick={save} disabled={saving} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold hover:bg-primary-glow transition disabled:opacity-50">
                 {saving ? "Saving…" : "Save profile"}
               </button>
+              <ChangePassword />
             </>
           )}
 

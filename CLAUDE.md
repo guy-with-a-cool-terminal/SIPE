@@ -54,7 +54,7 @@ supabase db reset    # re-runs all migrations from scratch
 - **`components/app/ProtectedRoute.tsx`** — guards authenticated routes
 - **`pages/`** — one file per route; data fetching is done directly with the Supabase client + React Query
 
-Routes: `/` `/login` `/register` `/d/:token` (public) | `/dashboard` `/accounts` `/transactions` `/analytics` `/goals` `/debts` `/quotes` `/quotes/:id` `/invoices` `/invoices/:id` `/clients` `/links` `/links/:id` `/settings` `/whats-new` (protected)
+Routes: `/` `/login` `/register` `/forgot-password` `/reset-password` `/d/:token` (public) | `/dashboard` `/accounts` `/transactions` `/analytics` `/goals` `/debts` `/quotes` `/quotes/:id` `/invoices` `/invoices/:id` `/clients` `/links` `/links/:id` `/settings` `/whats-new` (protected)
 
 ### Backend (`supabase/`)
 

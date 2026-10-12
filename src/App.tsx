@@ -10,6 +10,8 @@ import { AppShell } from "@/components/app/AppShell";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
+import ForgotPassword from "./pages/ForgotPassword.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 
 // Protected pages are code-split: the landing / auth bundle stays small.
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
@@ -49,6 +51,8 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/d/:token" element={<PublicDocument />} />
               <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
