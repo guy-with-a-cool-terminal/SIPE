@@ -330,10 +330,10 @@ const Dashboard = () => {
       </div>
 
       {/* Summary row — always 3 cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-        <div className="glass rounded-xl p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+        <div className="glass col-span-2 rounded-xl p-4 sm:col-span-1">
           <p className="text-xs text-muted-foreground">Balance</p>
-          <p className={`text-2xl font-bold mt-1 ${totalBalance < 0 ? "text-destructive" : ""}`}>
+          <p className={`text-[28px] leading-tight sm:text-2xl font-bold mt-1 tabular-nums ${totalBalance < 0 ? "text-destructive" : ""}`}>
             {formatKES(totalBalance)}
           </p>
           {openingBalance !== null && openingBalance !== totalBalance && (
@@ -347,17 +347,17 @@ const Dashboard = () => {
             </p>
           )}
         </div>
-        <div className="glass rounded-xl p-4">
+        <div className="glass min-w-0 rounded-xl p-4">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ArrowDownRight className="size-3 text-primary" /> In {periodLabel}
           </div>
-          <p className="text-2xl font-bold mt-1">{formatKES(displayIncome)}</p>
+          <p className="text-base sm:text-2xl font-bold mt-1 tabular-nums">{formatKES(displayIncome)}</p>
         </div>
-        <div className="glass rounded-xl p-4">
+        <div className="glass min-w-0 rounded-xl p-4">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ArrowUpRight className="size-3" /> Out {periodLabel}
           </div>
-          <p className="text-2xl font-bold mt-1">{formatKES(displaySpend)}</p>
+          <p className="text-base sm:text-2xl font-bold mt-1 tabular-nums">{formatKES(displaySpend)}</p>
           {displaySpend > displayIncome && openingBalance !== null && (
             <p className="text-xs text-muted-foreground mt-1.5">
               {formatKES(displaySpend - displayIncome)} from carry-over
@@ -423,21 +423,22 @@ const Dashboard = () => {
           const hasPeriodActivity = period !== "all" && (periodBkt.actualAllocated > 0 || periodBkt.actualSpent > 0);
 
           return (
-            <div key={b} className="glass rounded-xl p-4">
+            <div key={b} className="glass min-w-0 rounded-xl p-3.5 sm:p-4">
               {/* Card header */}
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
+                <div className="flex min-w-0 items-center gap-2">
                   <div
-                    className="size-8 rounded-lg grid place-items-center font-bold text-sm"
+                    className="size-7 sm:size-8 flex-shrink-0 rounded-lg grid place-items-center font-bold text-sm"
                     style={{ backgroundColor: `hsl(${meta.color} / 0.15)`, color: `hsl(${meta.color})` }}
                   >
                     {b}
                   </div>
-                  <span className="text-sm font-medium text-muted-foreground">{meta.name}</span>
+                  <span className="text-sm font-medium leading-tight text-muted-foreground">{meta.name}</span>
                 </div>
                 <button
                   onClick={() => toggleCard(b)}
-                  className={`p-1 rounded-md transition ${isCardExpanded ? "text-primary bg-primary/10" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
+                  aria-label={isCardExpanded ? "Hide details" : "Show details"}
+                  className={`-m-1.5 p-2.5 flex-shrink-0 rounded-md transition ${isCardExpanded ? "text-primary bg-primary/10" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
                   title={isCardExpanded ? "Hide details" : "Show details"}
                 >
                   {isCardExpanded ? <X className="size-3.5" /> : <Info className="size-3.5" />}
@@ -445,10 +446,10 @@ const Dashboard = () => {
               </div>
 
               {/* Balance */}
-              <p className={`text-xl font-bold ${isOverspent ? "text-destructive" : ""}`}>
-                {formatKES(balance)}
+              <p className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[17px] leading-tight sm:text-xl font-bold tabular-nums ${isOverspent ? "text-destructive" : ""}`}>
+                <span className="whitespace-nowrap">{formatKES(balance)}</span>
                 {isOverspent && (
-                  <span className="ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">over</span>
+                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">over</span>
                 )}
               </p>
 
@@ -610,14 +611,16 @@ const Dashboard = () => {
               <div key={key} className="glass rounded-xl overflow-hidden">
                 <button
                   onClick={() => toggleGroup(key)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/20 transition"
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-secondary/20 transition"
                 >
-                  <div className="flex items-center gap-2.5">
-                    {isOpen ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
-                    <span className="font-medium text-sm">{label}</span>
-                    <span className="text-xs text-muted-foreground">{items.length} tx</span>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    {isOpen ? <ChevronDown className="size-4 flex-shrink-0 text-muted-foreground" /> : <ChevronRight className="size-4 flex-shrink-0 text-muted-foreground" />}
+                    <span className="min-w-0">
+                      <span className="block whitespace-nowrap text-sm font-medium">{label}</span>
+                      <span className="block text-xs text-muted-foreground">{items.length} {items.length === 1 ? "transaction" : "transactions"}</span>
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex flex-col items-end gap-0.5 text-sm sm:flex-row sm:items-center sm:gap-3">
                     {income > 0 && <span className="text-primary font-medium tabular-nums">+{formatKES(income)}</span>}
                     {spend > 0 && <span className="text-muted-foreground tabular-nums">−{formatKES(spend)}</span>}
                   </div>

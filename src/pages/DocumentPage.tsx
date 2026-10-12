@@ -220,7 +220,7 @@ const FinalisedView = ({ data }: { data: Loaded }) => {
         />
       </div>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
         <div className="min-w-0">
           <div ref={paperRef}>
           <PaperFrame className="mx-auto max-w-[794px]">

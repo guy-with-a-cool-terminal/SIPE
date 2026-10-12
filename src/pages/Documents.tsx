@@ -35,6 +35,9 @@ const FILTERS: Record<DocumentKind, { key: "all" | DisplayStatus; label: string 
   ],
 };
 
+/** Unpaid invoices show what is still owed; everything else shows its total. */
+const listAmount = (r: DocumentRow) => (r.kind === "invoice" && r.status === "sent" ? balanceDue(r) : Number(r.total));
+
 const Documents = ({ kind }: { kind: DocumentKind }) => {
   const label = KIND_LABEL[kind];
   usePageTitle(label.many);
@@ -97,8 +100,8 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
     { header: "Date", cell: (r) => <span className="tabular-nums">{formatDocDate(r.issue_date)}</span> },
     { header: kind === "invoice" ? "Due" : "Valid until", cell: (r) => <span className="tabular-nums">{formatDocDate(r.due_date) || "–"}</span> },
     {
-      header: kind === "invoice" ? "Balance" : "Total", align: "right",
-      cell: (r) => <span className="font-semibold tabular-nums">{formatKES(kind === "invoice" && r.status !== "draft" && r.status !== "void" ? balanceDue(r) : Number(r.total))}</span>,
+      header: kind === "invoice" ? "Amount due" : "Total", align: "right",
+      cell: (r) => <span className="font-semibold tabular-nums">{formatKES(listAmount(r))}</span>,
     },
     { header: "Status", cell: (r) => <span className="flex items-center gap-1.5"><StatusBadge status={r.display} />{!r.counts_as_income && <PassThroughBadge />}</span> },
   ];
@@ -132,17 +135,17 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {stats.map((s) => (
-          <div key={s.label} className="glass rounded-2xl p-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {stats.map((s, i) => (
+          <div key={s.label} className={cn("glass min-w-0 rounded-2xl p-4", i === 0 && "col-span-2 sm:col-span-1")}>
             <p className="text-xs text-muted-foreground">{s.label}</p>
-            <p className={cn("mt-1 text-xl font-bold tabular-nums", "warn" in s && s.warn && "text-destructive")}>{s.value}</p>
+            <p className={cn("mt-1 font-bold tabular-nums", i === 0 ? "text-xl" : "text-base sm:text-xl", "warn" in s && s.warn && "text-destructive")}>{s.value}</p>
             <p className="text-xs text-muted-foreground">{s.sub}</p>
           </div>
         ))}
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto">
+      <div className="-mx-4 mb-4 flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         {FILTERS[kind].map((f) => (
           <button
             key={f.key} onClick={() => setFilter(f.key)}
@@ -185,7 +188,7 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-1">
                   <span className="font-semibold tabular-nums">
-                    {formatKES(kind === "invoice" && r.status !== "draft" && r.status !== "void" ? balanceDue(r) : Number(r.total))}
+                    {formatKES(listAmount(r))}
                   </span>
                   <span className="flex items-center gap-1.5">{!r.counts_as_income && <PassThroughBadge />}<StatusBadge status={r.display} /></span>
                 </div>

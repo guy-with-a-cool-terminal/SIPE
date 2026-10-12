@@ -118,20 +118,20 @@ const Links = () => {
           {links.map(l => {
             const t = totals[l.id] || { count: 0, sum: 0 };
             return (
-              <div key={l.id} className="glass rounded-2xl p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+              <div key={l.id} className="glass min-w-0 rounded-2xl p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                  <div className="min-w-0 flex-1">
                     <Link to={`/links/${l.id}`} className="text-lg font-semibold hover:text-primary transition truncate block">{l.name}</Link>
                     {l.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{l.description}</p>}
                   </div>
                   <p className="text-xl font-bold whitespace-nowrap">{formatKES(Number(l.amount))}</p>
                 </div>
-                <div className="flex items-center gap-2 mt-4 bg-input border border-border rounded-xl px-3 py-2">
-                  <code className="text-xs text-muted-foreground truncate flex-1">{l.paystack_url}</code>
-                  <button onClick={() => copy(l.paystack_url || "", l.id)} className="text-muted-foreground hover:text-foreground transition">
+                <div className="flex items-center gap-1 mt-4 bg-input border border-border rounded-xl py-1 pl-3 pr-1">
+                  <code className="min-w-0 text-xs text-muted-foreground truncate flex-1">{l.paystack_url}</code>
+                  <button onClick={() => copy(l.paystack_url || "", l.id)} aria-label="Copy link" className="rounded-lg p-2.5 text-muted-foreground hover:text-foreground transition">
                     {copied === l.id ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
                   </button>
-                  <a href={l.paystack_url || "#"} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground transition">
+                  <a href={l.paystack_url || "#"} target="_blank" rel="noreferrer" aria-label="Open link" className="rounded-lg p-2.5 text-muted-foreground hover:text-foreground transition">
                     <ExternalLink className="size-4" />
                   </a>
                 </div>

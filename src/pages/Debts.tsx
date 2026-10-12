@@ -170,9 +170,9 @@ const Debts = () => {
             {d.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{d.description}</p>}
             {paid > 0 && (
               <div className="mt-2">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Paid {formatKES(paid)}</span>
-                  <span>{rem > 0 ? `${formatKES(rem)} left` : "fully paid"}</span>
+                <div className="flex flex-wrap justify-between gap-x-3 text-xs text-muted-foreground mb-1">
+                  <span className="whitespace-nowrap">Paid {formatKES(paid)}</span>
+                  <span className="whitespace-nowrap">{rem > 0 ? `${formatKES(rem)} left` : "fully paid"}</span>
                 </div>
                 <div className="h-1 rounded-full bg-border overflow-hidden">
                   <div
@@ -196,7 +196,9 @@ const Debts = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-0.5 flex-shrink-0">
+        </div>
+
+        <div className="flex items-center gap-1 border-t border-border/50 px-1.5 py-1">
             {rem > 0 && (
               <button
                 onClick={() => {
@@ -204,59 +206,57 @@ const Debts = () => {
                   setPayAmount("");
                   setPayNote("");
                 }}
-                className="p-1 rounded-md text-muted-foreground hover:text-primary transition text-xs font-medium px-2"
-                title="Record payment"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
               >
-                Pay
+                <Plus className="size-4" /> Add payment
               </button>
             )}
             {debtPayments.length > 0 && (
               <button
                 onClick={() => toggleHistory(d.id)}
-                className="p-1 rounded-md text-muted-foreground hover:text-foreground transition"
-                title="Payment history"
+                className="flex items-center gap-1 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+                aria-expanded={historyOpen}
               >
-                {historyOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                History {historyOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
               </button>
             )}
             <button
               onClick={() => setDeleteId(d.id)}
-              className="p-1 rounded-md text-muted-foreground hover:text-destructive transition"
-              title="Delete"
+              className="ml-auto rounded-md p-2.5 text-muted-foreground transition hover:text-destructive"
+              aria-label={`Delete ${d.party}`}
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className="size-4" />
             </button>
-          </div>
         </div>
 
         {/* Inline pay form */}
         {isPayingThis && (
           <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
-            <div className="flex gap-2 mt-3">
+            <div className="mt-3 grid grid-cols-[1fr_auto_auto] gap-2 sm:flex">
               <input
-                type="number" min={0} step="0.01"
+                type="number" min={0} step="0.01" inputMode="decimal"
                 value={payAmount}
                 onChange={e => setPayAmount(e.target.value)}
                 placeholder={`Amount (max ${formatKES(rem)})`}
-                className="flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                className="col-span-3 min-w-0 flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
                 autoFocus
               />
               <input
                 value={payNote}
                 onChange={e => setPayNote(e.target.value)}
                 placeholder="Note (optional)"
-                className="flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                className="min-w-0 flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
               />
               <button
                 onClick={() => recordPayment(d)}
                 disabled={savingPay}
-                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary-glow transition disabled:opacity-50"
+                className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary-glow transition disabled:opacity-50"
               >
                 {savingPay ? "…" : <Check className="size-4" />}
               </button>
               <button
                 onClick={() => setPayingDebtId(null)}
-                className="p-1.5 text-muted-foreground hover:text-foreground border border-border rounded-lg transition"
+                className="p-2.5 text-muted-foreground hover:text-foreground border border-border rounded-lg transition"
               >
                 <X className="size-4" />
               </button>
@@ -289,18 +289,18 @@ const Debts = () => {
 
       {/* Net summary */}
       {!loading && (iOwe.length > 0 || owedMe.length > 0) && (
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          <div className="glass rounded-xl p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 sm:mb-8">
+          <div className="glass min-w-0 rounded-xl p-4">
             <p className="text-xs text-muted-foreground">I owe</p>
-            <p className="text-2xl font-bold mt-1 text-destructive">{formatKES(totalOwe)}</p>
+            <p className="text-base sm:text-2xl font-bold mt-1 tabular-nums text-destructive">{formatKES(totalOwe)}</p>
           </div>
-          <div className="glass rounded-xl p-4">
+          <div className="glass min-w-0 rounded-xl p-4">
             <p className="text-xs text-muted-foreground">Owed to me</p>
-            <p className="text-2xl font-bold mt-1 text-primary">{formatKES(totalOwed)}</p>
+            <p className="text-base sm:text-2xl font-bold mt-1 tabular-nums text-primary">{formatKES(totalOwed)}</p>
           </div>
-          <div className="glass rounded-xl p-4">
+          <div className="glass col-span-2 min-w-0 rounded-xl p-4 sm:col-span-1">
             <p className="text-xs text-muted-foreground">Net</p>
-            <p className={`text-2xl font-bold mt-1 ${net >= 0 ? "text-primary" : "text-destructive"}`}>
+            <p className={`text-xl sm:text-2xl font-bold mt-1 tabular-nums ${net >= 0 ? "text-primary" : "text-destructive"}`}>
               {net >= 0 ? "+" : "−"}{formatKES(Math.abs(net))}
             </p>
           </div>
@@ -312,7 +312,7 @@ const Debts = () => {
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {/* I Owe */}
-          <div className="glass rounded-2xl p-5">
+          <div className="glass min-w-0 rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">I owe</h2>
               <button
@@ -334,7 +334,7 @@ const Debts = () => {
           </div>
 
           {/* Owed to Me */}
-          <div className="glass rounded-2xl p-5">
+          <div className="glass min-w-0 rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Owed to me</h2>
               <button

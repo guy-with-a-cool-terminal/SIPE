@@ -375,7 +375,7 @@ const Analytics = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
             {/* Summary card — week label or last full month */}
-            <div className="glass rounded-xl p-5">
+            <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
               {isWeekView ? (
                 <>
                   <p className="text-xs text-muted-foreground mb-3">{weekLabel}</p>
@@ -391,7 +391,7 @@ const Analytics = () => {
                   </p>
                   {lastFullMonthRow ? (
                     <>
-                      <div className="flex items-end gap-2 mb-2">
+                      <div className="flex flex-wrap items-end gap-x-2 gap-y-0.5 mb-2">
                         <p className={`text-2xl font-bold ${lastFullMonthRow.closing >= 0 ? "" : "text-destructive"}`}>
                           {formatKES(lastFullMonthRow.closing)}
                         </p>
@@ -412,7 +412,7 @@ const Analytics = () => {
             </div>
 
             {/* Period income */}
-            <div className="glass rounded-xl p-5">
+            <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
               <p className="text-xs text-muted-foreground mb-3">
                 {isWeekView ? "Income this week" : "Earned this period"}
               </p>
@@ -425,7 +425,7 @@ const Analytics = () => {
             </div>
 
             {/* Period spend */}
-            <div className="glass rounded-xl p-5">
+            <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
               <p className="text-xs text-muted-foreground mb-3">
                 {isWeekView ? "Spent this week" : "Spent this period"}
               </p>
@@ -439,7 +439,7 @@ const Analytics = () => {
           </div>
 
           {/* Income vs. Spend bar chart */}
-          <div className="glass rounded-xl p-5">
+          <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-sm font-semibold">Income vs. spend</h2>
               <span className="text-xs text-muted-foreground">Transfers excluded</span>
@@ -465,11 +465,11 @@ const Analytics = () => {
           </div>
 
           {/* Bucket breakdown + Monthly history — side by side on large screens */}
-          <div className="grid lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* Spending by bucket */}
             {totalBucketSpend > 0 ? (
-              <div className="glass rounded-xl p-5">
+              <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
                 <h2 className="text-sm font-semibold mb-4">Spending by bucket</h2>
                 <div className="flex flex-col items-center gap-5 sm:flex-row">
                   {/* Donut */}
@@ -537,7 +537,7 @@ const Analytics = () => {
                 </div>
               </div>
             ) : (
-              <div className="glass rounded-xl p-5 flex items-center justify-center text-sm text-muted-foreground">
+              <div className="glass min-w-0 rounded-xl p-4 sm:p-5 flex items-center justify-center text-sm text-muted-foreground">
                 No spending data in this period.
               </div>
             )}
@@ -549,7 +549,23 @@ const Analytics = () => {
                   <h2 className="text-sm font-semibold">Monthly balance</h2>
                   <span className="text-xs text-muted-foreground">Carry-over included</span>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Phones: one line per month instead of a five-column table. */}
+                <ul className="divide-y divide-border md:hidden">
+                  {tableRows.map(row => (
+                    <li key={row.key} className="px-4 py-3">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-medium">{row.label}</span>
+                        <span className={`text-sm font-semibold tabular-nums ${row.closing >= 0 ? "text-primary" : "text-destructive"}`}>{formatKES(row.closing)}</span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                        Opened {formatKES(row.opening)}
+                        {row.income > 0 && <> · <span className="text-primary">+{formatKES(row.income)}</span></>}
+                        {row.spend > 0 && <> · −{formatKES(row.spend)}</>}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-xs">
                     <thead className="bg-secondary/30 text-muted-foreground">
                       <tr>
@@ -592,18 +608,18 @@ const Analytics = () => {
 
           {/* Income sources — full width */}
           {top5.length > 0 && (
-            <div className="glass rounded-xl p-5">
+            <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold">Where your income comes from</h2>
                 <span className="text-xs text-muted-foreground">Real deposits only</span>
               </div>
-              <div className="grid sm:grid-cols-2 gap-x-10 gap-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3">
                 {top5.map(([source, amount]) => {
                   const pct = totalSourceIncome > 0 ? (amount / totalSourceIncome) * 100 : 0;
                   return (
                     <div key={source}>
                       <div className="flex justify-between text-xs mb-1.5">
-                        <span className="font-medium truncate max-w-[55%]">{source}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{source}</span>
                         <span className="text-muted-foreground tabular-nums ml-3 flex-shrink-0">
                           {formatKES(amount)} · {pct.toFixed(0)}%
                         </span>
@@ -622,7 +638,7 @@ const Analytics = () => {
           )}
 
           {/* Weekly habits */}
-          <div className="glass rounded-xl p-5">
+          <div className="glass min-w-0 rounded-xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-semibold">Weekly habits</h2>
@@ -639,12 +655,12 @@ const Analytics = () => {
               )}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               {/* This week vs last week */}
               <div>
-                <div className="grid grid-cols-4 text-xs text-muted-foreground mb-2 px-0.5">
-                  <span></span>
+                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-x-2 sm:gap-x-3 text-xs text-muted-foreground mb-2 px-0.5">
+                  <span className="w-10"></span>
                   <span className="text-right">This week</span>
                   <span className="text-right">Last week</span>
                   <span className="text-right">Change</span>
@@ -658,10 +674,10 @@ const Analytics = () => {
                   const pct   = lastVal !== 0 ? (delta / Math.abs(lastVal)) * 100 : null;
                   const good  = goodIfUp ? delta >= 0 : delta <= 0;
                   return (
-                    <div key={label} className="grid grid-cols-4 items-center py-2 border-b border-border/40 last:border-0 text-sm">
-                      <span className="text-xs text-muted-foreground">{label}</span>
-                      <span className="text-right tabular-nums font-medium">{formatKES(thisVal)}</span>
-                      <span className="text-right tabular-nums text-muted-foreground">{formatKES(lastVal)}</span>
+                    <div key={label} className="grid grid-cols-[auto_1fr_1fr_auto] gap-x-2 sm:gap-x-3 items-center py-2 border-b border-border/40 last:border-0 text-xs sm:text-sm">
+                      <span className="w-10 text-xs text-muted-foreground">{label}</span>
+                      <span className="whitespace-nowrap text-right tabular-nums font-medium">{formatKES(thisVal, { whole: true })}</span>
+                      <span className="whitespace-nowrap text-right tabular-nums text-muted-foreground">{formatKES(lastVal, { whole: true })}</span>
                       <span className={`text-right text-xs flex items-center justify-end gap-0.5 ${
                         pct === null ? "text-muted-foreground" : good ? "text-primary" : "text-destructive"
                       }`}>

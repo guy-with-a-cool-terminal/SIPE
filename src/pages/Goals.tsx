@@ -195,18 +195,18 @@ const Goals = () => {
               {totals.target > 0 ? Math.round((totals.saved / totals.target) * 100) : 0}% funded
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-lg md:text-xl font-bold tabular-nums">{formatKES(totals.target)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Total target</p>
+          <div className="divide-y divide-border sm:grid sm:grid-cols-3 sm:gap-4 sm:divide-y-0">
+            <div className="flex flex-row-reverse items-baseline justify-between gap-3 py-2 sm:block sm:py-0">
+              <p className="text-base md:text-xl font-bold tabular-nums">{formatKES(totals.target)}</p>
+              <p className="text-sm sm:text-xs text-muted-foreground sm:mt-0.5">Total target</p>
             </div>
-            <div>
-              <p className="text-lg md:text-xl font-bold tabular-nums text-primary">{formatKES(totals.saved)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Saved so far</p>
+            <div className="flex flex-row-reverse items-baseline justify-between gap-3 py-2 sm:block sm:py-0">
+              <p className="text-base md:text-xl font-bold tabular-nums text-primary">{formatKES(totals.saved)}</p>
+              <p className="text-sm sm:text-xs text-muted-foreground sm:mt-0.5">Saved so far</p>
             </div>
-            <div>
-              <p className="text-lg md:text-xl font-bold tabular-nums">{formatKES(totals.remaining)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Still to save</p>
+            <div className="flex flex-row-reverse items-baseline justify-between gap-3 py-2 sm:block sm:py-0">
+              <p className="text-base md:text-xl font-bold tabular-nums">{formatKES(totals.remaining)}</p>
+              <p className="text-sm sm:text-xs text-muted-foreground sm:mt-0.5">Still to save</p>
             </div>
           </div>
           <div className="h-1.5 rounded-full bg-secondary overflow-hidden mt-4">

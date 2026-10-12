@@ -55,7 +55,10 @@ Recipe applied to every protected page root:
    `NotificationsBell` right. Scrolls with the page or stays sticky — sticky is fine at 56px.
 2. A **fixed bottom tab bar** (`fixed bottom-0 inset-x-0`, `h-16` + safe-area padding,
    `bg-background/95 backdrop-blur border-t`): 5 slots.
-   - Dashboard, Accounts, Transactions, Analytics, **More**
+   - Dashboard, Transactions, **+ (quick add)**, Accounts, **More** (since 2026-10-12;
+     Analytics moved into More so labels fit at 360px)
+   - The centre **+** (`components/app/QuickAdd.tsx`) opens a sheet: Record a deposit, Add an
+     expense, New invoice, New quote. The most frequent jobs are one tap from any screen.
    - Each: icon (`size-5`) above a `text-[10px]` label, active = `text-primary`, whole
      slot is a ≥44px tap target, `aria-current="page"` on the active one.
    - "More" opens a `Sheet side="bottom"` listing the rest: Goals, Debts, Settings,
@@ -129,6 +132,28 @@ Severity: **P0** breaks the page · **P1** clearly wrong · **P2** polish.
 | 18 | **P2** | Tap targets | Bare icon buttons at `p-1` (`~24px`): modal close, dashboard card info toggle, `Debts` edit/expand, `Transactions` row edit/delete. | `p-2.5` on mobile or a 44px hit box. |
 
 ---
+
+## 3a. Mobile pass with real data (2026-10-12)
+
+Audited every protected screen at **320 / 360 / 390** against a local mock Supabase with
+realistic data, using an overflow detector (each route in a phone-width iframe, reporting
+any element past the right edge). All screens now fit at all three widths.
+
+Root causes found, and the rules they became:
+- **Grid columns grow to their content.** A grid with no base `grid-cols-*` gets one `auto`
+  column sized by its widest child (a long amount, a URL, the 794px invoice paper). Always
+  give mobile grids `grid-cols-1` / `grid-cols-2`, and put `min-w-0` on grid children that
+  hold text or amounts.
+- **Header actions must wrap.** `PageHeader` actions were `flex-shrink-0`, so three buttons
+  widened the whole page. They now wrap within the page width.
+- **Negative amounts split.** `-Ksh 649` broke after the hyphen. `formatKES` now emits a true
+  minus joined to the number.
+- **Three stacked KPI cards push content off the first screen.** On phones: one full-width
+  headline figure, the rest two-up (Dashboard, Debts, Invoices/Quotes).
+- **Label/value beats three columns of big numbers** (Goals summary, Analytics monthly table).
+- **Icon-only row actions** became labelled buttons with ≥40px targets (Debts, Accounts).
+- **Filters fold away** behind a Filters button with an active count (Transactions).
+- `formatKES(n, { whole: true })` drops `.00` where a table must fit 320px.
 
 ## 4. Implementation order
 

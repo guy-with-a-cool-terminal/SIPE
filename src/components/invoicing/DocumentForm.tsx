@@ -256,7 +256,7 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
         ))}
       </div>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)] xl:items-start">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)] xl:items-start">
         <div className={cn("space-y-5 min-w-0", view === "preview" && "hidden xl:block")}>
           <Panel title={isInvoice ? "Bill to" : "Prepared for"}>
             <div className="flex gap-2">
@@ -303,10 +303,16 @@ export const DocumentForm = ({ doc, items: initialItems, profile }: Props) => {
                     <div className="min-w-0 flex-1 space-y-2">
                       <input className={`${field} !mt-0`} placeholder="Description" value={it.description} onChange={(e) => setItem(it.key, { description: e.target.value })} />
                       <input className={`${field} !mt-0 !py-2 text-sm`} placeholder="Details (optional)" value={it.details} onChange={(e) => setItem(it.key, { details: e.target.value })} />
-                      <div className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2">
-                        <input className={`${field} !mt-0`} type="number" min={0} step="0.01" aria-label="Quantity" value={it.quantity} onChange={(e) => setItem(it.key, { quantity: e.target.value })} />
-                        <input className={`${field} !mt-0`} type="number" min={0} step="0.01" placeholder="Unit price" aria-label="Unit price" value={it.unit_price} onChange={(e) => setItem(it.key, { unit_price: e.target.value })} />
-                        <span className="min-w-[96px] text-right text-sm font-semibold tabular-nums">
+                      <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-end gap-2 sm:grid-cols-[72px_minmax(0,1fr)_auto]">
+                        <label className="min-w-0">
+                          <span className="text-xs text-muted-foreground sm:sr-only">Qty</span>
+                          <input className={`${field} !mt-0`} type="number" inputMode="decimal" min={0} step="0.01" aria-label="Quantity" value={it.quantity} onChange={(e) => setItem(it.key, { quantity: e.target.value })} />
+                        </label>
+                        <label className="min-w-0">
+                          <span className="text-xs text-muted-foreground sm:sr-only">Unit price (KES)</span>
+                          <input className={`${field} !mt-0`} type="number" inputMode="decimal" min={0} step="0.01" placeholder="0" aria-label="Unit price" value={it.unit_price} onChange={(e) => setItem(it.key, { unit_price: e.target.value })} />
+                        </label>
+                        <span className="col-span-2 pt-1 text-right text-sm font-semibold tabular-nums sm:col-span-1 sm:min-w-[96px] sm:self-center sm:pt-0">
                           {formatKES(lineAmount({ quantity: Number(it.quantity) || 0, unit_price: Number(it.unit_price) || 0 }))}
                         </span>
                       </div>

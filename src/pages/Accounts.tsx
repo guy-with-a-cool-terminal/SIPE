@@ -200,44 +200,42 @@ const Accounts = () => {
                   {list.map((a) => {
                     const stale = isStale(a, lastActivity[a.id] ?? null);
                     return (
-                      <div key={a.id} className="glass rounded-xl p-4 relative overflow-hidden">
-                        {a.color && <span className="absolute left-0 top-0 h-full w-1" style={{ backgroundColor: a.color }} />}
-                        <div className="flex items-start justify-between gap-2">
+                      <div key={a.id} className="glass min-w-0 rounded-xl">
+                        <div className="flex items-start justify-between gap-3 p-4 pb-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
+                              {a.color && <span className="size-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: a.color }} aria-hidden />}
                               <span className="font-medium text-sm truncate">{a.name}</span>
                               {a.is_default && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Default</span>
+                                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Default</span>
                               )}
                               {stale && (
                                 <span
-                                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                  className="text-[11px] px-1.5 py-0.5 rounded-full font-medium"
                                   style={{ backgroundColor: "hsl(var(--warning) / 0.15)", color: "hsl(var(--warning))" }}
                                 >
                                   Stale
                                 </span>
                               )}
                             </div>
-                            {a.institution && <p className="text-xs text-muted-foreground mt-0.5 truncate">{a.institution}</p>}
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {[a.institution, lastActivity[a.id] ? `Last activity ${fmtDate(lastActivity[a.id])}` : "No activity yet"].filter(Boolean).join(" · ")}
+                            </p>
                           </div>
+                          <p className={`flex-shrink-0 whitespace-nowrap text-base sm:text-xl font-bold tabular-nums ${balanceOf(a) < 0 ? "text-destructive" : ""}`}>
+                            {formatKES(balanceOf(a))}
+                          </p>
                         </div>
 
-                        <p className={`text-xl font-bold mt-2 tabular-nums ${balanceOf(a) < 0 ? "text-destructive" : ""}`}>
-                          {formatKES(balanceOf(a))}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {lastActivity[a.id] ? `Last activity ${fmtDate(lastActivity[a.id])}` : "No activity yet"}
-                        </p>
-
-                        <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/60">
-                          <button onClick={() => setAccountModal({ open: true, account: a })} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition" title="Edit">
-                            <Pencil className="size-3.5" />
+                        <div className="flex items-center gap-1 border-t border-border/60 px-1.5 py-1">
+                          <button onClick={() => setAccountModal({ open: true, account: a })} className="flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:text-foreground transition">
+                            <Pencil className="size-4" /> Edit
                           </button>
-                          <button onClick={() => openAdjust(a.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition" title="Adjust balance">
-                            <Scale className="size-3.5" />
+                          <button onClick={() => openAdjust(a.id)} className="flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:text-foreground transition">
+                            <Scale className="size-4" /> Adjust balance
                           </button>
-                          <button onClick={() => archiveToggle(a)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition ml-auto" title="Archive">
-                            <Archive className="size-3.5" />
+                          <button onClick={() => archiveToggle(a)} className="ml-auto rounded-md p-2.5 text-muted-foreground hover:text-destructive transition" aria-label={`Archive ${a.name}`} title="Archive">
+                            <Archive className="size-4" />
                           </button>
                         </div>
                       </div>

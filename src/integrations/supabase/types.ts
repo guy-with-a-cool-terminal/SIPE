@@ -87,8 +87,17 @@ export const BUCKET_META: Record<Bucket, { name: string; color: string }> = {
   E: { name: "Expenses", color: "var(--bucket-e)" },
 };
 
-export const formatKES = (n: number) =>
-  new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 2 }).format(n);
+const KES = new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 2 });
+const KES_WHOLE = new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 });
+
+/**
+ * "Ksh 1,234.50". Negatives use a true minus joined to the amount, so the sign can't wrap
+ * onto its own line. `whole` rounds to shillings for tight tables on small phones.
+ */
+export const formatKES = (n: number, opts?: { whole?: boolean }) => {
+  const s = (opts?.whole ? KES_WHOLE : KES).format(n);
+  return s.startsWith("-") ? `\u2212\u2060${s.slice(1)}` : s;
+};
 
 // ─── Accounts ──────────────────────────────────────────────────────────────
 

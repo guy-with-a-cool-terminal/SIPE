@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Bucket, type Transaction } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { ArrowLeftRight, Download, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Download, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -35,6 +35,7 @@ const Transactions = () => {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("deposits");
   const [q, setQ] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [bucket, setBucket] = useState<Bucket | "ALL">("ALL");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -227,6 +228,8 @@ const Transactions = () => {
     },
   ];
 
+  const activeFilters = [from, to, minAmt, maxAmt].filter(Boolean).length + (tab === "expenses" && bucket !== "ALL" ? 1 : 0);
+
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-8 pb-24 md:pb-10">
       <PageHeader
@@ -279,42 +282,66 @@ const Transactions = () => {
         <button className={periodBtnClass("month")} onClick={() => setPeriod("month")}>This month</button>
       </div>
 
-      {/* Filters */}
-      <div className="glass rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-        <div className="relative col-span-2 sm:col-span-3 md:col-span-2">
-          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search description or category"
-            className="w-full pl-10 pr-3 py-2 bg-input border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
-          />
-        </div>
-        {tab === "expenses" ? (
-          <select
-            value={bucket}
-            onChange={(e) => setBucket(e.target.value as Bucket | "ALL")}
-            className="bg-input border border-border rounded-xl px-3 py-2 text-sm"
+      {/* Filters: search always visible; the rest folds away on phones. */}
+      <div className="glass rounded-2xl p-3 sm:p-4 mb-4">
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search"
+              aria-label="Search description or category"
+              className="w-full pl-10 pr-3 py-2.5 bg-input border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+            className={`md:hidden flex flex-shrink-0 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition ${
+              showFilters || activeFilters > 0 ? "border-primary text-primary" : "border-border text-muted-foreground"
+            }`}
           >
-            <option value="ALL">All buckets</option>
-            {ALL_BUCKETS.map(b => <option key={b} value={b}>{BUCKET_META[b].name}</option>)}
-          </select>
-        ) : (
-          <div />
-        )}
-        <input
-          type="date" value={from}
-          onChange={(e) => { setFrom(e.target.value); setPeriod("all"); }}
-          className="bg-input border border-border rounded-xl px-3 py-2 text-sm"
-        />
-        <input
-          type="date" value={to}
-          onChange={(e) => { setTo(e.target.value); setPeriod("all"); }}
-          className="bg-input border border-border rounded-xl px-3 py-2 text-sm"
-        />
-        <div className="col-span-2 sm:col-span-1 flex gap-2">
-          <input type="number" value={minAmt} onChange={(e) => setMinAmt(e.target.value)} placeholder="Min" className="w-1/2 bg-input border border-border rounded-xl px-3 py-2 text-sm" />
-          <input type="number" value={maxAmt} onChange={(e) => setMaxAmt(e.target.value)} placeholder="Max" className="w-1/2 bg-input border border-border rounded-xl px-3 py-2 text-sm" />
+            <SlidersHorizontal className="size-4" /> Filters{activeFilters > 0 ? ` (${activeFilters})` : ""}
+          </button>
+        </div>
+        <div className={`${showFilters ? "grid" : "hidden"} md:grid mt-3 grid-cols-2 gap-3 md:grid-cols-4`}>
+          {tab === "expenses" && (
+            <label className="col-span-2 md:col-span-1">
+              <span className="text-xs text-muted-foreground">Bucket</span>
+              <select
+                value={bucket}
+                onChange={(e) => setBucket(e.target.value as Bucket | "ALL")}
+                className="mt-1 w-full bg-input border border-border rounded-xl px-3 py-2.5 text-sm"
+              >
+                <option value="ALL">All buckets</option>
+                {ALL_BUCKETS.map(b => <option key={b} value={b}>{BUCKET_META[b].name}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="min-w-0">
+            <span className="text-xs text-muted-foreground">From</span>
+            <input
+              type="date" value={from}
+              onChange={(e) => { setFrom(e.target.value); setPeriod("all"); }}
+              className="mt-1 w-full min-w-0 bg-input border border-border rounded-xl px-3 py-2.5 text-sm"
+            />
+          </label>
+          <label className="min-w-0">
+            <span className="text-xs text-muted-foreground">To</span>
+            <input
+              type="date" value={to}
+              onChange={(e) => { setTo(e.target.value); setPeriod("all"); }}
+              className="mt-1 w-full min-w-0 bg-input border border-border rounded-xl px-3 py-2.5 text-sm"
+            />
+          </label>
+          <div className={`col-span-2 ${tab === "expenses" ? "md:col-span-1" : "md:col-span-2"}`}>
+            <span className="text-xs text-muted-foreground">Amount (KES)</span>
+            <div className="mt-1 flex gap-2">
+              <input type="number" inputMode="decimal" value={minAmt} onChange={(e) => setMinAmt(e.target.value)} placeholder="Min" aria-label="Minimum amount" className="w-1/2 min-w-0 bg-input border border-border rounded-xl px-3 py-2.5 text-sm" />
+              <input type="number" inputMode="decimal" value={maxAmt} onChange={(e) => setMaxAmt(e.target.value)} placeholder="Max" aria-label="Maximum amount" className="w-1/2 min-w-0 bg-input border border-border rounded-xl px-3 py-2.5 text-sm" />
+            </div>
+          </div>
         </div>
       </div>
 

@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/lib/admin";
 import { NotificationsBell } from "./NotificationsBell";
 import { WhatsNew } from "./WhatsNew";
+import { QuickAdd } from "./QuickAdd";
 import {
   Sheet,
   SheetContent,
@@ -42,7 +43,8 @@ const links: { to: string; label: string; icon: typeof Settings; group?: string 
 ];
 
 // The 4 destinations that get a permanent slot in the mobile bottom bar.
-const PRIMARY_MOBILE = ["/dashboard", "/transactions", "/accounts", "/analytics"];
+// Bottom bar: Dashboard, Transactions, [+ quick add], Accounts, More. Analytics lives in More.
+const PRIMARY_MOBILE = ["/dashboard", "/transactions", "/accounts"];
 const primaryLinks = links.filter((l) => PRIMARY_MOBILE.includes(l.to));
 const moreLinks = links.filter((l) => !PRIMARY_MOBILE.includes(l.to));
 
@@ -188,23 +190,25 @@ export const AppShell = () => {
           className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch border-t border-border bg-background [padding-bottom:env(safe-area-inset-bottom)]"
           aria-label="Primary"
         >
-          {primaryLinks.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex flex-1 flex-col items-center justify-center gap-1 py-2 min-h-[3.5rem] text-[10px] font-medium transition ${
-                  isActive ? "text-primary" : "text-muted-foreground"
-                }`
-              }
-            >
-              <Icon className="size-5" />
-              {label}
-            </NavLink>
+          {primaryLinks.map(({ to, label, icon: Icon }, i) => (
+            <Fragment key={to}>
+              {i === 2 && <QuickAdd />}
+              <NavLink
+                to={to}
+                className={({ isActive }) =>
+                  `flex flex-1 flex-col items-center justify-center gap-1 py-2 min-h-[3.5rem] text-[11px] font-medium transition ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`
+                }
+              >
+                <Icon className="size-5" />
+                {label}
+              </NavLink>
+            </Fragment>
           ))}
           <button
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 min-h-[3.5rem] text-[10px] font-medium transition ${
+            className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 min-h-[3.5rem] text-[11px] font-medium transition ${
               moreActive ? "text-primary" : "text-muted-foreground"
             }`}
             aria-label="More"
