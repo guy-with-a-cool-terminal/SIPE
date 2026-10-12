@@ -8,15 +8,16 @@ const steps = [
 ];
 
 export const HowItWorks = () => (
-  <section className="py-20 sm:py-24">
+  <section className="py-14 sm:py-20 lg:py-24">
     <Container>
       <SectionHeading title="From quote to salary" sub="SIPE follows the money from the first quote to the day you pay yourself." />
-      <ol className="relative mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+      <ol className="relative mt-10 grid gap-8 sm:mt-14 md:grid-cols-2 md:gap-10 lg:grid-cols-4 lg:gap-8">
+        <div className="absolute bottom-3 left-[7px] top-3 w-px bg-border md:hidden" aria-hidden />
         <div className="absolute left-0 right-0 top-[7px] hidden h-px bg-border lg:block" aria-hidden />
         {steps.map((s) => (
-          <li key={s.title} className="relative">
-            <span className="relative block size-[15px] rounded-full border-[3px] border-primary bg-background" aria-hidden />
-            <h3 className="mt-6 text-2xl font-semibold">{s.title}</h3>
+          <li key={s.title} className="relative pl-9 md:pl-0">
+            <span className="absolute left-0 top-2 block size-[15px] rounded-full border-[3px] border-primary bg-background md:relative md:top-0" aria-hidden />
+            <h3 className="text-[22px] font-semibold md:mt-6 md:text-2xl">{s.title}</h3>
             <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
           </li>
         ))}

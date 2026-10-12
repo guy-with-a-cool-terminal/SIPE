@@ -8,10 +8,10 @@ const costs = [
 ];
 
 export const Problem = () => (
-  <section className="py-20 sm:py-24">
+  <section className="py-14 sm:py-20 lg:py-24">
     <Container>
       <div className="grid items-end gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-        <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-[40px]">
+        <h2 className="text-balance text-[28px] font-semibold leading-tight tracking-tight sm:text-[40px]">
           Budgeting apps assume a salary. Freelance money does not arrive that way.
         </h2>
         <p className="text-[17px] leading-relaxed text-muted-foreground">
@@ -19,7 +19,7 @@ export const Problem = () => (
           harder. It is deciding where each payment goes the moment it arrives.
         </p>
       </div>
-      <div className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10 grid gap-x-10 gap-y-8 sm:mt-14 sm:grid-cols-2 sm:gap-y-10 lg:grid-cols-4">
         {costs.map((c) => <RuledItem key={c.title} title={c.title}>{c.body}</RuledItem>)}
       </div>
     </Container>

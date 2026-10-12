@@ -28,7 +28,7 @@ export const SplitBar = ({ amount, className = "" }: { amount?: number; classNam
 );
 
 export const Split = () => (
-  <section id="split" className="scroll-mt-4 bg-muted py-20 sm:py-24">
+  <section id="split" className="scroll-mt-4 bg-muted py-14 sm:py-20 lg:py-24">
     <Container>
       <SectionHeading
         title="One payment, four jobs"

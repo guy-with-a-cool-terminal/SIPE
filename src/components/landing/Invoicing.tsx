@@ -27,20 +27,18 @@ const points = [
 
 export const Invoicing = () => (
   <section id="invoicing" className="scroll-mt-4 bg-ink py-20 text-white sm:py-24">
-    <Container className="grid items-start gap-14 lg:grid-cols-[1fr_1fr]">
-      <div>
-        <h2 className="text-3xl font-semibold leading-tight tracking-tight text-white sm:text-[40px]">
+    {/* Phones: intro, the invoice, then the points. lg: text left, invoice right. */}
+    <Container className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-10">
+      <div className="lg:col-start-1">
+        <h2 className="text-balance text-[28px] font-semibold leading-tight tracking-tight text-white sm:text-[40px]">
           Invoices that look like a business sent them.
         </h2>
         <p className="mt-5 text-[17px] leading-relaxed text-white/75">
           Quote the work, turn the accepted quote into an invoice, and record what the client pays. The money lands
           in your buckets without being typed in twice.
         </p>
-        <dl className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-          {points.map((p) => <RuledItem key={p.title} title={p.title} dark>{p.body}</RuledItem>)}
-        </dl>
       </div>
-      <div className="min-w-0 overflow-hidden rounded-lg">
+      <div className="min-w-0 overflow-hidden rounded-lg lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <PaperFrame>
           <DocumentPaper
             kind="invoice" status="sent" number="INV-2026-0014"
@@ -59,6 +57,9 @@ export const Invoicing = () => (
           />
         </PaperFrame>
       </div>
+      <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:col-start-1">
+        {points.map((p) => <RuledItem key={p.title} title={p.title} dark>{p.body}</RuledItem>)}
+      </dl>
     </Container>
   </section>
 );

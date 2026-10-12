@@ -33,7 +33,7 @@ const Login = () => {
         <Field label="Email" name="email" type="email" placeholder="you@freelance.io" />
         <div>
           <PasswordField label="Password" name="password" value={password} onChange={setPassword} autoComplete="current-password" />
-          <Link to="/forgot-password" className="mt-2 inline-block text-sm text-primary hover:underline">Forgot password?</Link>
+          <Link to="/forgot-password" className="mt-1 inline-block py-2 text-sm text-primary hover:underline">Forgot password?</Link>
         </div>
         <SubmitButton>{loading ? "Signing in…" : "Log in"}</SubmitButton>
       </form>

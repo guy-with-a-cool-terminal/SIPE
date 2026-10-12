@@ -10,7 +10,7 @@ const features = [
 ];
 
 export const Features = () => (
-  <section className="bg-muted py-20 sm:py-24">
+  <section className="bg-muted py-14 sm:py-20 lg:py-24">
     <Container>
       <SectionHeading title="The rest of your money, in the same place" sub="Everything reads from the same payments and buckets, so the numbers agree with each other." />
       <dl className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

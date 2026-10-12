@@ -11,7 +11,7 @@ const faqs = [
 ];
 
 export const Faq = () => (
-  <section id="faq" className="scroll-mt-4 py-20 sm:py-24">
+  <section id="faq" className="scroll-mt-4 py-14 sm:py-20 lg:py-24">
     <Container className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
       <SectionHeading title="Questions people ask first" />
       <div className="border-t border-foreground">

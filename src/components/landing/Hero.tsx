@@ -11,17 +11,17 @@ const proof = [
 export const Hero = () => (
   <>
     <section className="bg-background">
-      <Container className="py-20 text-center sm:py-28">
+      <Container className="py-14 text-center sm:py-28">
         <h1 className="mx-auto max-w-[900px] text-balance text-[36px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[60px]">
           Your income comes in lumps.<br className="hidden sm:block" />{" "}
           <span className="text-primary">Your rent does not.</span>
         </h1>
-        <p className="mx-auto mt-7 max-w-[660px] text-lg leading-relaxed text-muted-foreground">
+        <p className="mx-auto mt-6 max-w-[660px] text-[17px] leading-relaxed text-muted-foreground sm:mt-7 sm:text-lg">
           SIPE divides every payment you receive into Savings, Investments, Pay yourself and Expenses at the
           percentages you choose. A KES 120,000 invoice becomes a month of salary, a tax set-aside and money for
           bills, instead of three good weeks.
         </p>
-        <div className="mt-10 flex flex-wrap justify-center gap-4">
+        <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Link to="/register" className="rounded-full bg-primary px-8 py-3.5 text-[17px] font-medium text-primary-foreground transition hover:bg-primary-glow">
             Create your account
           </Link>
