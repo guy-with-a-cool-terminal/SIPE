@@ -1,7 +1,7 @@
 // Resend wrapper + shared HTML shell for all SIPE outbound email.
 
 const DEFAULT_FROM = "SIPE <noreply@cnbcode.com>";
-const APP_URL = "https://sipe.cnbcode.com";
+export const APP_URL = "https://sipe.cnbcode.com";
 
 /** SIPE email palette — mirrors the dark app theme, brand blue accent. */
 export const EMAIL = {
@@ -23,6 +23,8 @@ export interface SendEmailArgs {
   subject: string;
   html: string;
   from?: string;
+  /** Where replies go, e.g. the business's own address on a client reminder. */
+  replyTo?: string;
 }
 
 export interface SendEmailResult {
@@ -32,7 +34,7 @@ export interface SendEmailResult {
 }
 
 export async function sendEmail(
-  { to, subject, html, from }: SendEmailArgs,
+  { to, subject, html, from, replyTo }: SendEmailArgs,
 ): Promise<SendEmailResult> {
   const key = Deno.env.get("RESEND_API_KEY");
   if (!key) return { ok: false, id: null, error: "RESEND_API_KEY not configured" };
@@ -43,7 +45,7 @@ export async function sendEmail(
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
     },
-    body: JSON.stringify({ from: from || DEFAULT_FROM, to: [to], subject, html }),
+    body: JSON.stringify({ from: from || DEFAULT_FROM, to: [to], subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
   });
 
   if (!res.ok) {

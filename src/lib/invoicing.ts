@@ -41,6 +41,8 @@ export interface BusinessProfile {
   default_valid_days: number;
   /** New documents count as income (split into buckets) unless set otherwise. */
   default_counts_as_income: boolean;
+  /** Daily emails to clients about unpaid invoices (client-reminders-batch). Off by default. */
+  auto_reminders?: boolean;
   invoice_notes: string | null;
   invoice_terms: string | null;
   quote_notes: string | null;
@@ -55,7 +57,7 @@ export interface BusinessProfile {
 export type Issuer = Omit<
   BusinessProfile,
   | "user_id" | "next_invoice_seq" | "next_quote_seq" | "invoice_notes" | "invoice_terms"
-  | "quote_notes" | "quote_terms" | "quote_payment_terms" | "default_counts_as_income"
+  | "quote_notes" | "quote_terms" | "quote_payment_terms" | "default_counts_as_income" | "auto_reminders"
 >;
 
 export interface Client {
@@ -69,6 +71,8 @@ export interface Client {
   kra_pin: string | null;
   notes: string | null;
   archived: boolean;
+  /** Pinned by the user; sorts first on the Clients page. */
+  key_client?: boolean;
   created_at: string;
 }
 

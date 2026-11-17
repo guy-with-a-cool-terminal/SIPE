@@ -7,6 +7,7 @@ import { dateRange, weekBounds } from "./week.ts";
 import { emailShell, EMAIL } from "./email.ts";
 import { tipForWeek } from "./tips.ts";
 import { highestMilestone } from "./goals.ts";
+import { clientAttention, clientAttentionHtml } from "./client-attention.ts";
 
 const BUCKETS = ["S", "I", "P", "E"] as const;
 const BUCKET_NAMES: Record<string, string> = {
@@ -210,6 +211,10 @@ export async function buildWeeklyReview(
       <p style="margin:0;font-size:13px;color:${EMAIL.textDim}">${tip.body}</p>
     </div>`;
 
+  // Overdue invoices, accepted quotes not invoiced, invoices due in 3 days. Never blocks the email.
+  const todayNairobi = new Date(now.getTime() + 3 * 3600_000).toISOString().slice(0, 10);
+  const clientsSection = clientAttentionHtml(await clientAttention(db, userId, todayNairobi).catch(() => []));
+
   const bodyHtml = `
     <p style="margin:0 0 20px;font-size:15px">Hey ${firstName},</p>
     <p style="margin:0 0 28px;font-size:15px">${motiveLine}</p>
@@ -244,6 +249,7 @@ export async function buildWeeklyReview(
       <tbody>${bucketRows}</tbody>
     </table>
 
+    ${clientsSection}
     ${goalsSection}
     ${tipSection}`;
 

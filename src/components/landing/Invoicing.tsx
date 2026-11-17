@@ -23,6 +23,8 @@ const points = [
   { title: "Numbers without gaps", body: "A number is given only when you finalise, so deleted drafts never leave holes in your sequence." },
   { title: "Paid means split", body: "Record a payment against an invoice and it goes into your buckets. Mark a deal as pass-through and it stays out." },
   { title: "Easy for the client", body: "A link they open without an account, a print-ready PDF, and your M-Pesa and bank details under How to pay." },
+  { title: "Know who to chase", body: "Overdue invoices, accepted quotes nobody has invoiced yet and clients who have gone quiet, in one list, with a WhatsApp reminder ready to send. Or let SIPE send the reminders for you." },
+  { title: "See who matters most", body: "Clients ranked by what they actually paid you in the last year, how quickly each one pays, and a warning when one client is half your income." },
 ];
 
 export const Invoicing = () => (

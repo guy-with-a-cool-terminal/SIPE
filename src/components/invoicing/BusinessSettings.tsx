@@ -23,7 +23,7 @@ const EMPTY: Form = {
   bank_name: "", bank_branch: "", bank_account_name: "", bank_account_number: "", bank_swift: "",
   mpesa_paybill: "", mpesa_account: "", mpesa_till: "", mpesa_phone: "", payment_note: "",
   invoice_prefix: "INV", quote_prefix: "QT", next_invoice_seq: 1, next_quote_seq: 1,
-  default_due_days: 14, default_valid_days: 30, default_counts_as_income: true,
+  default_due_days: 14, default_valid_days: 30, default_counts_as_income: true, auto_reminders: false,
   invoice_notes: "", invoice_terms: "", quote_notes: "", quote_terms: "", quote_payment_terms: "",
   signatory_name: "", signatory_title: "", footer_text: "",
 };
@@ -87,6 +87,8 @@ export const BusinessSettings = () => {
     setSaving(true);
     const blankToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : typeof v === "string" ? v.trim() : v);
     const payload = Object.fromEntries(Object.entries(f).map(([k, v]) => [k, blankToNull(v)]));
+    // Only send the reminders flag once the column exists, so saving works before the migration runs.
+    if (!f.auto_reminders && !(profile && "auto_reminders" in profile)) delete payload.auto_reminders;
     const { error } = await supabase.from("business_profiles").upsert({
       ...payload,
       user_id: user.id,
@@ -214,6 +216,21 @@ export const BusinessSettings = () => {
           <Field label="Extra payment note" className="mt-4">
             <textarea className={`${field} min-h-[72px] resize-y`} placeholder="Please use the invoice number as the payment reference." {...text("payment_note")} />
           </Field>
+        </Section>
+
+        <Section title="Payment reminders" hint="SIPE can email clients about unpaid invoices for you, from your business name, with replies going to your email above.">
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-[hsl(var(--primary))]" checked={!!f.auto_reminders} onChange={(e) => set("auto_reminders", e.target.checked)} />
+            <span>
+              Email payment reminders to clients automatically
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Two days before an invoice is due, then 1, 7 and 14 days after, until it's paid. Each one is sent once, and you get a notification when it goes. Clients without an email address are skipped.
+              </span>
+            </span>
+          </label>
+          {f.auto_reminders && !f.email && (
+            <p className="mt-3 text-xs text-warning">Add your business email above so clients can reply to you.</p>
+          )}
         </Section>
 
         <Section title="Tax" hint="Only charge VAT if you are VAT-registered with KRA. Not sure? Leave it off.">

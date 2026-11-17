@@ -6,6 +6,7 @@ const faqs = [
   { q: "What does it connect to?", a: "Paystack. Payments made through your SIPE payment links are recorded and split as they happen. Payments by M-Pesa, bank or cash take a few taps to record." },
   { q: "Can I change my percentages?", a: "Any time, in Settings. New payments use the new split. Payments already recorded keep the split they had." },
   { q: "What if some money is not mine to keep?", a: "Mark the invoice as pass-through, for a deal you close on someone else's behalf, for example. Its payments are tracked on the invoice and never reach your buckets or analytics." },
+  { q: "Can SIPE remind clients who haven't paid?", a: "Yes. The Clients page lists who is late and writes the reminder for you to send on WhatsApp or email. If you prefer, switch on automatic reminders and SIPE emails clients before an invoice is due and again if it runs late, from your business name, with replies coming to you." },
   { q: "Is it only for Kenya?", a: "Amounts are in Kenyan shillings, and invoices follow Kenyan practice: KRA PIN, an eTIMS invoice number field and M-Pesa paybill details. Other currencies are not supported yet." },
   { q: "Who makes SIPE?", a: "Brian AI Studio, a registered software business in Kenya." },
 ];
