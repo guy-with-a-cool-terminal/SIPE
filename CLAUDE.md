@@ -30,6 +30,9 @@ npx supabase functions deploy client-reminders-batch --no-verify-jwt   # daily c
 npx supabase functions deploy unsubscribe --no-verify-jwt
 npx supabase functions deploy admin                      # JWT required (admin dashboard + outbound email)
 npx supabase functions deploy sync-account               # JWT required (stub)
+npx supabase functions deploy project-health --no-verify-jwt   # daily cron (x-cron-secret) + "Check now" (JWT checked inside)
+npx supabase functions deploy project-metrics --no-verify-jwt  # push link, x-project-key header
+npx supabase functions deploy project-invite             # JWT required
 supabase secrets set PAYSTACK_SECRET_KEY=sk_live_...
 supabase secrets set RESEND_API_KEY=re_...
 supabase secrets set CRON_SECRET=$(openssl rand -hex 32) # gates weekly-review-batch
@@ -55,7 +58,7 @@ supabase db reset    # re-runs all migrations from scratch
 - **`components/app/ProtectedRoute.tsx`** — guards authenticated routes
 - **`pages/`** — one file per route; data fetching is done directly with the Supabase client + React Query
 
-Routes: `/` `/login` `/register` `/forgot-password` `/reset-password` `/d/:token` `/calculators` (public) | `/dashboard` `/accounts` `/transactions` `/analytics` `/goals` `/debts` `/quotes` `/quotes/:id` `/invoices` `/invoices/:id` `/clients` `/links` `/links/:id` `/settings` `/whats-new` (protected)
+Routes: `/` `/login` `/register` `/forgot-password` `/reset-password` `/d/:token` `/calculators` `/join/:token` (public) | `/dashboard` `/accounts` `/transactions` `/analytics` `/goals` `/debts` `/quotes` `/quotes/:id` `/invoices` `/invoices/:id` `/clients` `/projects` `/projects/:id` `/links` `/links/:id` `/settings` `/whats-new` (protected)
 
 ### Backend (`supabase/`)
 
@@ -71,6 +74,9 @@ Edge functions handle all write operations. All accept JSON POST unless noted:
 | `admin` | JWT; `whoami` is open to any signed-in user, every other action requires the caller's email in `ADMIN_EMAILS` | Backs the `/admin` section. Body `{ action }`: `whoami` (`{admin:boolean}` — the UI's gate), `overview` (dashboard counts), `users` (profiles + email prefs), `feed` (announcement rows), `send` (`{ subject, body_md, cta_label?, cta_url?, audience: "all"\|"user", email?, post_to_feed? }` — emails product-news subscribers or one user; `post_to_feed` also publishes to `/whats-new` + writes `notifications`; dedupe via `email_log`; per-recipient unsubscribe link). |
 | `client-reminders-batch` | `x-cron-secret` header == `CRON_SECRET` | Cron (daily): for users with `business_profiles.auto_reminders`, emails clients about unpaid invoices 2 days before due, then 1, 7, 14 days late. One email per stage per invoice (`email_log` kind `client_reminder_<stage>`, ref_id = document); failures aren't logged so they retry. From `"<Business> via SIPE" <noreply@cnbcode.com>`, reply-to the business email; writes a `notifications` row. |
 | `unsubscribe` | token only (`--no-verify-jwt`) | Public GET/POST `?token=<uuid>` → styled per-list email-preference page; matches `email_preferences.unsubscribe_token`. Linked from every marketing email footer. |
+| `project-health` | `x-cron-secret` (all launched projects, daily) or JWT + `{project_id}` (one, max every 2 min) | Baseline auto-checks from public info: RDAP domain renewal, uptime/HTTPS, MX, homepage HTML (title/description, Open Graph, JSON-LD, FAQ, analytics), `/sitemap.xml` `/robots.txt` `/llms.txt`. Logic in `_shared/site-health.ts`. Only fetches public IPs (≤3 redirects, 10s, 2 MB); blocked/failed = `unknown`, never `fail`; never overwrites items marked `na`. Writes `project_baseline_items` + `site_up` / `domain_days_left` metrics. |
+| `project-metrics` | `x-project-key` (sha256 in `project_keys`) | Push link: `{metric, value, date?}` or `{metrics:[...]}` (≤50) → `project_metrics` (source `push`), upsert per metric+day. Can only add numbers to its own project. |
+| `project-invite` | JWT; owner/cofounder | Creates/updates a pending `project_members` row and emails "<Name> invited you to <Project> on SIPE" (Resend). Always returns the `/join/:token` link too. |
 | `sync-account` | JWT required | STUB (501) — documented `SyncAdapter` interface + empty `ADAPTERS` registry for future ops/costs integrations |
 
 Webhook URL pattern: `{SUPABASE_URL}/functions/v1/paystack-webhook?uid={user_id}` — user ID in query param avoids email-matching ambiguity; Paystack signature verified via HMAC-SHA512.
@@ -97,6 +103,8 @@ No ORM — direct PostgREST queries via Supabase client. RLS on every table (use
 
 **Client priority** (`lib/clientPriority.ts`, tested; `/clients`, Dashboard `AttentionCard`): derived from finalised documents + `document_payments`, no stored scores. Tiers = 80/15/5 of the last 12 months' income-counting payments (pass-through excluded); "Needs attention" = overdue, accepted quotes not invoiced, due in 3 days, quotes expiring in 7, quiet (60d) top/key clients, ordered by kind then amount × client weight. `clients.key_client` pins a client first (migration `20261117000000_client_priority.sql`, which also adds `business_profiles.auto_reminders`). The weekly email's "Clients who need you" section uses the server-side subset in `_shared/client-attention.ts`; keep the wording in step.
 
+**Projects** (`20261118000000_projects.sql`; `lib/projects.ts`, tested; `/projects`, `/projects/:id`, `/join/:token`): `projects` + `project_members` (the team: owner/cofounder/contributor/viewer; `mode` focus/background/parked is **per member**, Focus capped by `profiles.focus_cap`, enforced by the `project_members_guard` trigger, which also stops non-owners changing roles/shares and blocks Background for idea/building), `project_cycles` (90-day goal + plan + stop rule, one active per project), `project_checkins` (weekly, one per person per week, items tagged build/grow), `project_baseline_items` (checklist; templates per project type live in `lib/projects.ts`, auto items written by `project-health`, `derived` items computed from SIPE data), `project_metrics` (one value per project+metric+day; sources auto/push/snapshot), `project_keys` (push-link key hashes). RLS goes through `is_project_member(project, roles[])`. `project_id` on `transactions` (parent row only), `documents`, `payment_links`, `expense_templates`; the `check_project_tag` trigger only lets people who work on a project tag money to it. Teammates **never** read each other's transactions: project totals come from `project_money(project)` (SECURITY DEFINER, totals only, owner always, others only when `projects.money_shared`). Invites: `get_project_invite(token)` (anon) / `accept_project_invite(token)` (signed-in email must match; brand-new users get `signup_source='invite'` and `enabled_modules={projects}`, the focused view). `profiles.enabled_modules` (null = everything) drives the sidebar, Settings tabs and route redirects (`MODULES` in `lib/projects.ts`); Settings › Features turns modules on/off. Access-rule tests: `supabase/tests/run-projects-access.sh` (needs a throwaway Postgres; diffs against `projects_access.expected`). The weekly email's "Projects this week" uses `_shared/project-attention.ts`; keep its wording in step with `projectAttention()`.
+
 **Split pattern**: every income creates one parent row (`parent_id = NULL`) + four child rows (one per bucket, `parent_id` set). This is the accounting core — don't break it.
 
 **Trigger**: `on_auth_user_created` auto-creates profile + default allocation_settings + email_preferences on signup. `accounts_single_default` (BEFORE INSERT/UPDATE) enforces one `is_default` account per user.
@@ -117,7 +125,7 @@ Supabase secrets (edge functions only, not in `.env`):
 ```
 PAYSTACK_SECRET_KEY   # paystack-webhook signature verification
 RESEND_API_KEY        # all outbound email
-CRON_SECRET           # x-cron-secret header gate for weekly-review-batch
+CRON_SECRET           # x-cron-secret header gate for weekly-review-batch, client-reminders-batch, project-health
 ADMIN_EMAILS          # comma-separated allowlist for the admin function
 ```
 

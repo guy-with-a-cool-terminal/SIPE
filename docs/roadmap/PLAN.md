@@ -552,3 +552,37 @@ curl -X POST 'https://drtbrleydafwietdhlng.supabase.co/functions/v1/weekly-revie
   -H 'x-cron-secret: <CRON_SECRET>'
 ```
 (idempotent within a calendar week — a second call the same week sends nothing).
+
+### 5. Projects (Phase 1, added 18 Nov 2026)
+
+1. Schema: run **`supabase/migrations/20261118000000_projects.sql`** (idempotent). Before
+   deploying, run the access-rule tests against a throwaway Postgres:
+   `PGURL=postgres://postgres@127.0.0.1:55432 supabase/tests/run-projects-access.sh`.
+2. Functions:
+   ```bash
+   npx supabase functions deploy project-health  --no-verify-jwt   # new: daily checks + "Check now"
+   npx supabase functions deploy project-metrics --no-verify-jwt   # new: push link
+   npx supabase functions deploy project-invite                    # new (JWT)
+   npx supabase functions deploy record-deposit  --no-verify-jwt   # changed: project_id
+   npx supabase functions deploy paystack-webhook --no-verify-jwt  # changed: project from payment link
+   npx supabase functions deploy create-payment-link --no-verify-jwt  # changed: project_id
+   npx supabase functions deploy weekly-review   --no-verify-jwt   # changed: "Projects this week"
+   npx supabase functions deploy weekly-review-batch --no-verify-jwt  # changed: same
+   ```
+3. Auth → URL configuration: add `https://sipe.cnbcode.com/join/**` to the redirect URLs,
+   or invite sign-in links can't return to the join page.
+4. Daily health checks:
+   ```sql
+   select cron.schedule(
+     'project-health',
+     '30 3 * * *',                       -- 06:30 Nairobi
+     $$
+     select net.http_post(
+       url     := 'https://drtbrleydafwietdhlng.supabase.co/functions/v1/project-health',
+       headers := jsonb_build_object('Content-Type','application/json','x-cron-secret','<CRON_SECRET>'),
+       body    := '{}'::jsonb,
+       timeout_milliseconds := 120000
+     );
+     $$
+   );
+   ```

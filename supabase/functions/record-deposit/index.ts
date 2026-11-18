@@ -1,4 +1,6 @@
 // Manually record an income deposit and auto-split into SIPE buckets.
+// Optional `project_id` tags the parent row to a project you work on (the four
+// bucket rows stay untagged, so the split is unchanged).
 // Optional `document_id` (+ `method`, `reference`) also records the deposit as a
 // payment against that invoice, linked to the parent transaction.
 // Auth required (JWT). Deploy: supabase functions deploy record-deposit
@@ -55,6 +57,7 @@ Deno.serve(async (req) => {
     const documentId = (body?.document_id ?? "").toString().trim() || null;
     const method = (body?.method ?? "").toString().trim() || "other";
     const reference = (body?.reference ?? "").toString().trim() || null;
+    const projectIdRaw = (body?.project_id ?? "").toString().trim() || null;
     if (!amount || amount <= 0) return json({ error: "Invalid amount" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE, { auth: { persistSession: false } });
@@ -66,6 +69,16 @@ Deno.serve(async (req) => {
         .from("accounts").select("id").eq("id", accountIdRaw).eq("user_id", userId).maybeSingle();
       if (!acct) return json({ error: "Account not found" }, 400);
       accountId = acct.id;
+    }
+
+    // Validate the project (if supplied): you must work on it, not just view it.
+    let projectId: string | null = null;
+    if (projectIdRaw) {
+      const { data: member } = await admin.from("project_members").select("id")
+        .eq("project_id", projectIdRaw).eq("user_id", userId).eq("status", "active")
+        .in("role", ["owner", "cofounder", "contributor"]).maybeSingle();
+      if (!member) return json({ error: "Project not found" }, 400);
+      projectId = projectIdRaw;
     }
 
     // Validate the invoice (if supplied) before any money is written.
@@ -93,6 +106,7 @@ Deno.serve(async (req) => {
       source,
       category,
       account_id: accountId,
+      project_id: projectId,
       occurred_at: occurredAt,
     }).select().single();
     if (parErr) return json({ error: parErr.message }, 500);

@@ -5,6 +5,7 @@ import { Plus, Minus, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { ResponsiveModal } from "./ResponsiveModal";
 import { dateInputToISO } from "@/lib/dates";
+import { ProjectPicker } from "@/components/projects/ProjectPicker";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 
@@ -34,6 +35,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState("");
+  const [projectId, setProjectId] = useState("");
 
   // Controlled single-mode fields
   const [formAmount, setFormAmount] = useState("");
@@ -66,6 +68,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setFormCategory(prefill.category || "");
       setFormDescription(prefill.name);
       setActiveTemplateId(prefill.id);
+      setProjectId(prefill.project_id ?? "");
     }
   }, [open, userId]);
 
@@ -82,6 +85,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     setFormCategory(t.category || "");
     setFormDescription(t.name);
     setActiveTemplateId(t.id);
+    setProjectId(t.project_id ?? "");
   };
 
   const autoSplit = () => {
@@ -112,6 +116,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
     setFormDate(new Date().toISOString().slice(0, 10));
     setActiveTemplateId(null);
     setAccountId("");
+    setProjectId("");
     onClose();
   };
 
@@ -140,7 +145,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setSaving(true);
       const { data: parent, error: parentErr } = await supabase
         .from("transactions")
-        .insert({ user_id: userId, type: "expense", bucket: null, amount: total, category, description, occurred_at, account_id: accountId || null })
+        .insert({ user_id: userId, type: "expense", bucket: null, amount: total, category, description, occurred_at, account_id: accountId || null, project_id: projectId || null })
         .select()
         .single();
       if (parentErr || !parent) { setSaving(false); return toast.error(parentErr?.message || "Failed to create expense"); }
@@ -160,7 +165,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
       setSaving(true);
       const { error } = await supabase.from("transactions").insert({
         user_id: userId, type: "expense", bucket: formBucket, amount, category, description, occurred_at,
-        template_id: activeTemplateId, account_id: accountId || null,
+        template_id: activeTemplateId, account_id: accountId || null, project_id: projectId || null,
       });
       setSaving(false);
       if (error) return toast.error(error.message);
@@ -200,7 +205,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <div
               onClick={() => setSplitMode(v => !v)}
-              className={`relative w-10 h-5 rounded-full transition-colors ${splitMode ? "bg-primary" : "bg-secondary"}`}
+              className={`relative w-10 h-5 rounded-full transition-colors ${splitMode ? "bg-primary" : "bg-muted-foreground/35"}`}
             >
               <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform ${splitMode ? "translate-x-5" : ""}`} />
             </div>
@@ -357,6 +362,7 @@ export const AddExpenseModal = ({ open, onClose, onSaved, userId, prefill }: Pro
               </select>
             </label>
           )}
+          <ProjectPicker value={projectId} onChange={setProjectId} />
         </div>
 
         <button

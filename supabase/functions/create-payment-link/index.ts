@@ -42,7 +42,17 @@ Deno.serve(async (req) => {
     const name = (body?.name ?? "").toString().trim();
     const description = (body?.description ?? "").toString().trim() || null;
     const amount = Number(body?.amount);
+    const projectIdRaw = (body?.project_id ?? "").toString().trim() || null;
     if (!name || !amount || amount <= 0) return json({ error: "name and positive amount required" }, 400);
+
+    // Check the project before creating anything on Paystack.
+    const admin = createClient(SUPABASE_URL, SERVICE, { auth: { persistSession: false } });
+    if (projectIdRaw) {
+      const { data: member } = await admin.from("project_members").select("id")
+        .eq("project_id", projectIdRaw).eq("user_id", userId).eq("status", "active")
+        .in("role", ["owner", "cofounder", "contributor"]).maybeSingle();
+      if (!member) return json({ error: "Project not found" }, 400);
+    }
 
     // Create Paystack Payment Page
     // https://paystack.com/docs/api/page/
@@ -91,7 +101,6 @@ Deno.serve(async (req) => {
     // Pre-fill owner email so the webhook can match the payment to this account
     const url = `https://paystack.com/pay/${slug}?email=${encodeURIComponent(ownerEmail)}`;
 
-    const admin = createClient(SUPABASE_URL, SERVICE, { auth: { persistSession: false } });
     const { data, error } = await admin.from("payment_links").insert({
       user_id: userId,
       name,
@@ -100,6 +109,7 @@ Deno.serve(async (req) => {
       paystack_slug: slug,
       paystack_url: url,
       paystack_id: pageId,
+      project_id: projectIdRaw,
     }).select().single();
     if (error) return json({ error: error.message }, 500);
 

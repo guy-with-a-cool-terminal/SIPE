@@ -1,0 +1,104 @@
+INSERT 0 5
+INSERT 0 1
+CREATE FUNCTION
+--- 1. A creates a project; owner row auto-created
+  name   
+ Salonly
+INSERT 0 1
+ role  | status |  mode  
+ owner | active | parked
+--- 1b. A cannot insert a member row directly (invites go through the function)
+psql:<stdin>:23: ERROR:  new row violates row-level security policy for table "project_members"
+--- 2. service role invites B (cofounder), C (contributor), D (viewer)
+INSERT 0 3
+--- 3. anon reads invite D
+                                                   get_project_invite                                                    
+ {"role": "viewer", "email": "d@x.com", "status": "invited", "project": "Salonly", "one_liner": null, "invited_by": "a"}
+--- 4. E (wrong email) tries to accept C invite: must fail
+psql:<stdin>:39: ERROR:  invite_email_mismatch: This invite was sent to c@x.com. Sign in with that email to accept it.
+--- 4b. E sees no projects, no members, no money
+ e_projects 
+          0
+ e_members 
+         0
+psql:<stdin>:43: ERROR:  Not a member of this project
+--- 5. B, C, D accept
+ b_ok 
+ t
+ c_ok 
+ t
+ d_ok 
+ t
+--- 5b. focused view: B (has money) stays full, C and D get projects only
+  email  | signup_source | enabled_modules 
+ b@x.com |               | 
+ c@x.com | invite        | {projects}
+ d@x.com | invite        | {projects}
+(3 rows)
+--- 5c. reusing an accepted token fails
+psql:<stdin>:53: ERROR:  This invite has already been used
+--- 6. C (contributor) tries to make itself owner / change share / edit project
+psql:<stdin>:57: ERROR:  Only the owner can change roles and shares
+psql:<stdin>:58: ERROR:  Only the owner can change roles and shares
+UPDATE 0
+  name   
+ Salonly
+--- 6b. C changes another member's mode: blocked
+UPDATE 0
+--- 6c. C checks in (allowed) and sets own mode to focus (allowed)
+INSERT 0 1
+ set_project_mode 
+--- 6d. C cannot create a push key
+psql:<stdin>:67: ERROR:  Not allowed
+--- 7. D (viewer) cannot check in, add numbers, or tag money
+psql:<stdin>:72: ERROR:  new row violates row-level security policy for table "project_checkins"
+psql:<stdin>:73: ERROR:  new row violates row-level security policy for table "project_metrics"
+psql:<stdin>:74: ERROR:  You can only tag money to a project you work on
+ d_can_read_checkins 
+                   1
+--- 8. A records project money; E cannot tag to it
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+psql:<stdin>:85: ERROR:  You can only tag money to a project you work on
+--- 9. B before sharing: shared=false; B cannot switch sharing on
+ shared 
+ false
+psql:<stdin>:91: ERROR:  Only the owner can share money or stop a project
+--- 9b. A shares; B sees totals only (1000 / 200, not the 99999), and cannot read A transactions
+UPDATE 1
+                                                                       money                                                                       
+ {"shared": true, "costs_90d": 200.00, "costs_all": 200.00, "income_90d": 1000.00, "income_all": 1000.00, "bills_monthly": 0, "documents_open": 0}
+ b_sees_txns_of_others 
+                     0
+--- 9c. B (cofounder) cannot kill the project
+psql:<stdin>:101: ERROR:  Only the owner can share money or stop a project
+--- 10. Focus cap (A, cap 2) and no Background for ideas
+INSERT 0 2
+ set_project_mode 
+ set_project_mode 
+psql:<stdin>:109: ERROR:  focus_cap: You already have 2 projects in Focus. Move one out first.
+psql:<stdin>:110: ERROR:  An idea or a project still being built has nothing to run in Background yet. Park it, or put it in Focus.
+  name   |  mode  
+ P2      | focus
+ P3      | parked
+ Salonly | focus
+(3 rows)
+--- 10b. A makes a push key
+ key_prefix 
+ pk_
+--- 10c. A cannot remove own owner row; can remove D
+DELETE 0
+DELETE 1
+ members_left 
+            3
+--- 11. team view with names (as C)
+  email  |    role     | status 
+ a@x.com | owner       | active
+ b@x.com | cofounder   | active
+ c@x.com | contributor | active
+(3 rows)
+--- 11b. C leaves the project
+DELETE 1
+ c_projects_after_leaving 
+                        0

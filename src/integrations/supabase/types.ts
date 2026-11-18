@@ -31,6 +31,8 @@ export interface ExpenseTemplate {
   amount: number;
   /** How often the bill is due, in months: 1, 3, 6 or 12. `amount` is paid each time. */
   every_months: number;
+  /** the project this bill is a running cost of (Projects › Money) */
+  project_id?: string | null;
   created_at: string;
 }
 
@@ -48,6 +50,7 @@ export interface Transaction {
   template_id: string | null;
   source: string | null;
   payment_link_id: string | null;
+  project_id?: string | null;
   occurred_at: string;
   created_at: string;
 }

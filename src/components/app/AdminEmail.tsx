@@ -136,7 +136,7 @@ export const AdminEmail = () => {
 
           {audience === "all" && (
             <label className="flex items-center gap-3 cursor-pointer select-none">
-              <div onClick={() => setPostToFeed((v) => !v)} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${postToFeed ? "bg-primary" : "bg-secondary"}`}>
+              <div onClick={() => setPostToFeed((v) => !v)} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${postToFeed ? "bg-primary" : "bg-muted-foreground/35"}`}>
                 <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform ${postToFeed ? "translate-x-5" : ""}`} />
               </div>
               <span className="text-sm text-muted-foreground">Also publish to the What's New feed and add an in-app notification</span>

@@ -78,12 +78,21 @@ Deno.serve(async (req) => {
 
     let paymentLinkId: string | null = null;
     let linkName: string | null = null;
+    let projectId: string | null = null;
     if (slug || pageId) {
-      const q = admin.from("payment_links").select("id, name");
+      const q = admin.from("payment_links").select("id, name, project_id, user_id");
       const { data: link } = slug
         ? await q.eq("paystack_slug", slug).maybeSingle()
         : await q.eq("paystack_id", pageId!).maybeSingle();
       if (link) { paymentLinkId = link.id; linkName = link.name; }
+      // Tag the payment to the link's project, but only if this user still works
+      // on it. A project tag must never stop the money itself being recorded.
+      if (link?.project_id && link.user_id === uid) {
+        const { data: member } = await admin.from("project_members").select("id")
+          .eq("project_id", link.project_id).eq("user_id", uid).eq("status", "active")
+          .in("role", ["owner", "cofounder", "contributor"]).maybeSingle();
+        if (member) projectId = link.project_id;
+      }
     }
 
     const payerName =
@@ -99,6 +108,7 @@ Deno.serve(async (req) => {
       description,
       paystack_ref: reference,
       payment_link_id: paymentLinkId,
+      project_id: projectId,
       account_id: accountId,
       source: data.customer?.email || null,
       occurred_at: new Date(data.paid_at || Date.now()).toISOString(),

@@ -49,13 +49,14 @@ export const AuthLayout = ({ title, subtitle, children, footer }: { title: strin
   </div>
 );
 
-export const Field = ({ label, type = "text", placeholder, name }: { label: string; type?: string; placeholder?: string; name: string }) => (
+export const Field = ({ label, type = "text", placeholder, name, defaultValue }: { label: string; type?: string; placeholder?: string; name: string; defaultValue?: string }) => (
   <label className="block">
     <span className="text-sm text-muted-foreground">{label}</span>
     <input
       name={name}
       type={type}
       placeholder={placeholder}
+      defaultValue={defaultValue}
       className="mt-2 w-full rounded-xl border border-border bg-input px-4 py-3 text-foreground transition placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
     />
   </label>

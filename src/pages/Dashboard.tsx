@@ -15,6 +15,7 @@ import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet"
 import { PageHeader } from "@/components/app/PageHeader";
 import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AttentionCard } from "@/components/clients/AttentionCard";
+import { ProjectsCard } from "@/components/projects/ProjectsCard";
 
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
 type Period = "all" | "week" | "lastmonth" | "month";
@@ -373,6 +374,7 @@ const Dashboard = () => {
       </div>
 
       <AttentionCard />
+      <ProjectsCard />
 
       {/* Cash by location */}
       {cashByLocation.length > 0 && (

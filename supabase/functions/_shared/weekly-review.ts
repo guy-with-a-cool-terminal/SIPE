@@ -8,6 +8,7 @@ import { emailShell, EMAIL } from "./email.ts";
 import { tipForWeek } from "./tips.ts";
 import { highestMilestone } from "./goals.ts";
 import { clientAttention, clientAttentionHtml } from "./client-attention.ts";
+import { projectAttention, projectAttentionHtml } from "./project-attention.ts";
 
 const BUCKETS = ["S", "I", "P", "E"] as const;
 const BUCKET_NAMES: Record<string, string> = {
@@ -232,6 +233,8 @@ export async function buildWeeklyReview(
   // Overdue invoices, accepted quotes not invoiced, invoices due in 3 days. Never blocks the email.
   const todayNairobi = new Date(now.getTime() + 3 * 3600_000).toISOString().slice(0, 10);
   const clientsSection = clientAttentionHtml(await clientAttention(db, userId, todayNairobi).catch(() => []));
+  // Check-ins, goals, halfway checks and site problems on the user's projects. Never blocks the email.
+  const projectsSection = projectAttentionHtml(await projectAttention(db, userId, todayNairobi).catch(() => []));
 
   const bodyHtml = `
     <p style="margin:0 0 20px;font-size:15px">Hey ${firstName},</p>
@@ -268,6 +271,7 @@ export async function buildWeeklyReview(
     </table>
 
     ${clientsSection}
+    ${projectsSection}
     ${goalsSection}
     ${tipSection}`;
 

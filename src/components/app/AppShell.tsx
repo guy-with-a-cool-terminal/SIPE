@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -16,12 +16,16 @@ import {
   FilePen,
   ReceiptText,
   Contact,
+  FolderKanban,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/lib/admin";
 import { NotificationsBell } from "./NotificationsBell";
 import { WhatsNew } from "./WhatsNew";
 import { QuickAdd } from "./QuickAdd";
+import { useProfileSettings } from "@/hooks/useProjects";
+import { homePath, moduleEnabled, moduleForPath, type ModuleKey } from "@/lib/projects";
 import {
   Sheet,
   SheetContent,
@@ -29,30 +33,39 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const links: { to: string; label: string; icon: typeof Settings; group?: string }[] = [
-  { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
-  { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/accounts",     label: "Accounts",     icon: Wallet },
-  { to: "/analytics",   label: "Analytics",    icon: BarChart3 },
-  { to: "/goals",       label: "Goals",        icon: Target },
-  { to: "/debts",       label: "Debts",        icon: Landmark },
-  { to: "/quotes",      label: "Quotes",       icon: FilePen,     group: "Business" },
-  { to: "/invoices",    label: "Invoices",     icon: ReceiptText, group: "Business" },
-  { to: "/clients",     label: "Clients",      icon: Contact,     group: "Business" },
+const allLinks: { to: string; label: string; icon: typeof Settings; group?: string; module?: ModuleKey }[] = [
+  { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard, module: "money" },
+  { to: "/transactions", label: "Transactions", icon: ArrowLeftRight,  module: "money" },
+  { to: "/accounts",     label: "Accounts",     icon: Wallet,          module: "money" },
+  { to: "/analytics",   label: "Analytics",    icon: BarChart3,        module: "money" },
+  { to: "/goals",       label: "Goals",        icon: Target,           module: "goals" },
+  { to: "/debts",       label: "Debts",        icon: Landmark,         module: "debts" },
+  { to: "/projects",    label: "Projects",     icon: FolderKanban, group: "Business", module: "projects" },
+  { to: "/quotes",      label: "Quotes",       icon: FilePen,      group: "Business", module: "invoicing" },
+  { to: "/invoices",    label: "Invoices",     icon: ReceiptText,  group: "Business", module: "invoicing" },
+  { to: "/clients",     label: "Clients",      icon: Contact,      group: "Business", module: "invoicing" },
   { to: "/settings",    label: "Settings",     icon: Settings },
 ];
 
-// The 4 destinations that get a permanent slot in the mobile bottom bar.
+// Up to 3 destinations get a permanent slot in the mobile bottom bar.
 // Bottom bar: Dashboard, Transactions, [+ quick add], Accounts, More. Analytics lives in More.
 const PRIMARY_MOBILE = ["/dashboard", "/transactions", "/accounts"];
-const primaryLinks = links.filter((l) => PRIMARY_MOBILE.includes(l.to));
-const moreLinks = links.filter((l) => !PRIMARY_MOBILE.includes(l.to));
 
 export const AppShell = () => {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: profile, isLoading: profileLoading } = useProfileSettings();
+  const enabled = profile?.enabled_modules ?? null;
+  // Focused view: people who joined through an invite see only what they turned on.
+  const links = allLinks.filter((l) => !l.module || moduleEnabled(enabled, l.module));
+  const focused = !!enabled;
+  const moneyOn = moduleEnabled(enabled, "money");
+  const primaryLinks = moneyOn
+    ? links.filter((l) => PRIMARY_MOBILE.includes(l.to))
+    : links.filter((l) => l.to !== "/settings").slice(0, 3);
+  const moreLinks = links.filter((l) => !primaryLinks.includes(l));
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem("sidebar-collapsed") === "1"
   );
@@ -72,6 +85,11 @@ export const AppShell = () => {
   const moreActive = moreLinks.some((l) => location.pathname.startsWith(l.to)) ||
     location.pathname.startsWith("/admin");
 
+  const pageModule = moduleForPath(location.pathname);
+  if (!profileLoading && pageModule && !moduleEnabled(enabled, pageModule)) {
+    return <Navigate to={homePath(enabled)} replace />;
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* ---------- Desktop sidebar ---------- */}
@@ -81,7 +99,7 @@ export const AppShell = () => {
         }`}
       >
         <div className={`flex items-center gap-2 border-b border-border ${collapsed ? "justify-center py-4 px-0" : "px-5 py-4"}`}>
-          <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
+          <Link to={homePath(enabled)} className="flex items-center gap-2 min-w-0">
             <img src="/logo.svg" alt="" className="size-8 flex-shrink-0" />
             {!collapsed && <span className="font-bold truncate">sipe</span>}
           </Link>
@@ -137,6 +155,16 @@ export const AppShell = () => {
           ))}
         </nav>
 
+        {focused && (
+          <NavLink
+            to="/settings?tab=features"
+            title={collapsed ? "More in SIPE" : undefined}
+            className={`mb-2 flex items-center gap-2 py-2 text-sm text-muted-foreground transition hover:text-foreground ${collapsed ? "justify-center" : "px-6"}`}
+          >
+            <Sparkles className="size-4 flex-shrink-0" />
+            {!collapsed && "More in SIPE"}
+          </NavLink>
+        )}
         <div className={`border-t border-border ${collapsed ? "px-2 py-4 flex flex-col items-center gap-3" : "px-5 py-4"}`}>
           {!collapsed && (
             <div className="flex items-center justify-between mb-3">
@@ -175,7 +203,7 @@ export const AppShell = () => {
       <main className="flex-1 min-w-0 [padding-left:env(safe-area-inset-left)] [padding-right:env(safe-area-inset-right)]">
         {/* ---------- Mobile top bar ---------- */}
         <div className="md:hidden print:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background px-4 h-14 [padding-top:env(safe-area-inset-top)]">
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <Link to={homePath(enabled)} className="flex items-center gap-2">
             <img src="/logo.svg" alt="" className="size-7" />
             <span className="font-bold">sipe</span>
           </Link>
@@ -192,7 +220,7 @@ export const AppShell = () => {
         >
           {primaryLinks.map(({ to, label, icon: Icon }, i) => (
             <Fragment key={to}>
-              {i === 2 && <QuickAdd />}
+              {i === 2 && moneyOn && <QuickAdd />}
               <NavLink
                 to={to}
                 className={({ isActive }) =>
@@ -243,6 +271,16 @@ export const AppShell = () => {
                 {label}
               </NavLink>
             ))}
+            {focused && (
+              <NavLink
+                to="/settings?tab=features"
+                onClick={() => setMoreOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              >
+                <Sparkles className="size-4" />
+                More in SIPE
+              </NavLink>
+            )}
             {isAdmin && (
               <NavLink
                 to="/admin"

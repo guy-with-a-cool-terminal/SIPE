@@ -189,7 +189,7 @@ export const AccountModal = ({ open, onClose, onSaved, userId, account, currentB
           </div>
 
           <label className="flex items-center gap-3 cursor-pointer select-none">
-            <div onClick={() => setIsDefault((v) => !v)} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${isDefault ? "bg-primary" : "bg-secondary"}`}>
+            <div onClick={() => setIsDefault((v) => !v)} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${isDefault ? "bg-primary" : "bg-muted-foreground/35"}`}>
               <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform ${isDefault ? "translate-x-5" : ""}`} />
             </div>
             <span className="text-sm text-muted-foreground">Default account: receives Paystack income</span>

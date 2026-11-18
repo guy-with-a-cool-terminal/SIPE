@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -17,6 +17,10 @@ import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
 import { BusinessSettings } from "@/components/invoicing/BusinessSettings";
 import { ChangePassword } from "@/components/app/ChangePassword";
+import { FeaturesSettings } from "@/components/projects/FeaturesSettings";
+import { ProjectPicker } from "@/components/projects/ProjectPicker";
+import { useProfileSettings } from "@/hooks/useProjects";
+import { moduleEnabled, type ModuleKey } from "@/lib/projects";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ALL_BUCKETS: Bucket[] = ["S", "I", "P", "E"];
@@ -31,16 +35,17 @@ interface PaymentLink {
   created_at: string;
 }
 
-type SettingsTab = "profile" | "business" | "allocation" | "bills" | "email" | "links" | "integrations";
+type SettingsTab = "profile" | "features" | "business" | "allocation" | "bills" | "email" | "links" | "integrations";
 
-const TABS: { key: SettingsTab; label: string }[] = [
+const ALL_TABS: { key: SettingsTab; label: string; module?: ModuleKey }[] = [
   { key: "profile",      label: "Profile" },
-  { key: "business",     label: "Business" },
-  { key: "allocation",   label: "Allocation" },
-  { key: "bills",        label: "Bills" },
+  { key: "features",     label: "Features" },
+  { key: "business",     label: "Business",      module: "invoicing" },
+  { key: "allocation",   label: "Allocation",    module: "money" },
+  { key: "bills",        label: "Bills",         module: "money" },
   { key: "email",        label: "Email" },
-  { key: "links",        label: "Payment links" },
-  { key: "integrations", label: "Integrations" },
+  { key: "links",        label: "Payment links", module: "money" },
+  { key: "integrations", label: "Integrations",  module: "money" },
 ];
 
 type EmailPrefKey = "weekly_review" | "tips" | "announcements" | "goal_updates";
@@ -55,10 +60,18 @@ const EMAIL_LISTS: { key: EmailPrefKey; label: string; blurb: string }[] = [
 const SettingsPage = () => {
   const { user } = useAuth();
   usePageTitle("Settings");
+  const { data: profileSettings } = useProfileSettings();
+  const TABS = ALL_TABS.filter((t) => !t.module || moduleEnabled(profileSettings?.enabled_modules, t.module));
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    return TABS.some((x) => x.key === t) ? (t as SettingsTab) : "profile";
+    return ALL_TABS.some((x) => x.key === t) ? (t as SettingsTab) : "profile";
   });
+  // Follow ?tab= links (e.g. "More in SIPE") while Settings is already open.
+  const { search } = useLocation();
+  useEffect(() => {
+    const t = new URLSearchParams(search).get("tab");
+    if (t && ALL_TABS.some((x) => x.key === t)) setActiveTab(t as SettingsTab);
+  }, [search]);
   const [s, setS] = useState({ savings_pct: 20, invest_pct: 15, pay_pct: 50, expenses_pct: 15 });
   const [limits, setLimits] = useState({ savings_limit: "", invest_limit: "", pay_limit: "", expenses_limit: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -78,6 +91,7 @@ const SettingsPage = () => {
   const [billBucket, setBillBucket] = useState<Bucket>("E");
   const [billAmount, setBillAmount] = useState("");
   const [billCategory, setBillCategory] = useState("");
+  const [billProject, setBillProject] = useState("");
   const [savingBill, setSavingBill] = useState(false);
   const [logTemplate, setLogTemplate] = useState<ExpenseTemplate | null>(null);
   const [billEvery, setBillEvery] = useState<number>(1);
@@ -99,6 +113,7 @@ const SettingsPage = () => {
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkDesc, setNewLinkDesc] = useState("");
   const [newLinkAmount, setNewLinkAmount] = useState("");
+  const [newLinkProject, setNewLinkProject] = useState("");
 
   const loadLinks = async () => {
     setLoadingLinks(true);
@@ -131,14 +146,14 @@ const SettingsPage = () => {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-link`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-      body: JSON.stringify({ name: newLinkName.trim(), description: newLinkDesc.trim(), amount: Number(newLinkAmount) }),
+      body: JSON.stringify({ name: newLinkName.trim(), description: newLinkDesc.trim(), amount: Number(newLinkAmount), project_id: newLinkProject || undefined }),
     });
     const body = await res.json();
     setCreatingLink(false);
     if (!res.ok) return toast.error(body.error || "Failed to create link");
     toast.success("Payment link created");
     setShowNewLink(false);
-    setNewLinkName(""); setNewLinkDesc(""); setNewLinkAmount("");
+    setNewLinkName(""); setNewLinkDesc(""); setNewLinkAmount(""); setNewLinkProject("");
     loadLinks();
   };
 
@@ -225,10 +240,11 @@ const SettingsPage = () => {
       amount: amt,
       every_months: billEvery,
       category: billCategory.trim() || null,
+      project_id: billProject || null,
     });
     setSavingBill(false);
     if (error) return toast.error(error.message);
-    setBillName(""); setBillBucket("E"); setBillAmount(""); setBillCategory(""); setBillEvery(1);
+    setBillName(""); setBillBucket("E"); setBillAmount(""); setBillCategory(""); setBillEvery(1); setBillProject("");
     setShowAddBill(false);
     loadTemplates();
     refreshPlanner();
@@ -346,6 +362,7 @@ const SettingsPage = () => {
         <div className="flex-1 min-w-0 space-y-6">
 
           {activeTab === "business" && <BusinessSettings />}
+          {activeTab === "features" && <FeaturesSettings />}
 
           {/* ── Profile ── */}
           {activeTab === "profile" && (
@@ -488,7 +505,7 @@ const SettingsPage = () => {
                         aria-checked={emailPrefs[key]}
                         disabled={!emailPrefsLoaded || savingPref === key}
                         onClick={() => toggleEmailPref(key)}
-                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 mt-0.5 disabled:opacity-50 ${emailPrefs[key] ? "bg-primary" : "bg-secondary"}`}
+                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 mt-0.5 disabled:opacity-50 ${emailPrefs[key] ? "bg-primary" : "bg-muted-foreground/35"}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform ${emailPrefs[key] ? "translate-x-5" : ""}`} />
                       </button>
@@ -571,6 +588,9 @@ const SettingsPage = () => {
                         className="mt-1 w-full bg-input border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                       />
                     </label>
+                    <div className="col-span-2">
+                      <ProjectPicker value={billProject} onChange={setBillProject} label="Running cost of a project? (optional)" />
+                    </div>
                   </div>
                   <button
                     onClick={addBill} disabled={savingBill}
@@ -681,6 +701,7 @@ const SettingsPage = () => {
                     <input type="number" step="0.01" value={newLinkAmount} onChange={e => setNewLinkAmount(e.target.value)} placeholder="0.00"
                       className="mt-1 w-full bg-input border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                   </label>
+                  <ProjectPicker value={newLinkProject} onChange={setNewLinkProject} label="Payments are for a project? (optional)" />
                   <button onClick={createLink} disabled={creatingLink}
                     className="w-full bg-primary text-primary-foreground font-semibold py-2 rounded-lg text-sm hover:bg-primary-glow transition disabled:opacity-50">
                     {creatingLink ? "Creating…" : "Create link"}

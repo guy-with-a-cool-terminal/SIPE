@@ -5,6 +5,7 @@ import type { Account } from "@/integrations/supabase/types";
 import { ResponsiveModal } from "./ResponsiveModal";
 import { field, submitButton } from "@/lib/forms";
 import { dateInputToISO } from "@/lib/dates";
+import { ProjectPicker } from "@/components/projects/ProjectPicker";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -14,6 +15,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
   const [saving, setSaving] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState("");
+  const [projectId, setProjectId] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -47,6 +49,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
       body: JSON.stringify({
         amount, source, category, note,
         account_id: accountId || undefined,
+        project_id: projectId || undefined,
         occurred_at: date ? dateInputToISO(date) : undefined,
       }),
     });
@@ -54,6 +57,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
     setSaving(false);
     if (!res.ok) return toast.error(body.error || "Failed to record deposit");
     toast.success(`Deposited ${amount.toLocaleString("en-KE")} KES, split into your buckets`);
+    setProjectId("");
     onSaved?.();
     onClose();
   };
@@ -90,6 +94,7 @@ export const DepositModal = ({ open, onClose, onSaved }: { open: boolean; onClos
               </select>
             </label>
           )}
+          <ProjectPicker value={projectId} onChange={setProjectId} />
           <label className="block">
             <span className="text-sm text-muted-foreground">Note (optional)</span>
             <input name="note" className={field} />

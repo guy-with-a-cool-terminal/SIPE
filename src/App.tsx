@@ -30,6 +30,9 @@ const DocumentPage = lazy(() => import("./pages/DocumentPage.tsx"));
 const Clients = lazy(() => import("./pages/Clients.tsx"));
 const PublicDocument = lazy(() => import("./pages/PublicDocument.tsx"));
 const Calculators = lazy(() => import("./pages/Calculators.tsx"));
+const Projects = lazy(() => import("./pages/Projects.tsx"));
+const ProjectPage = lazy(() => import("./pages/ProjectPage.tsx"));
+const Join = lazy(() => import("./pages/Join.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -56,6 +59,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/d/:token" element={<PublicDocument />} />
               <Route path="/calculators" element={<Calculators />} />
+              <Route path="/join/:token" element={<Join />} />
               <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/accounts" element={<Accounts />} />
@@ -68,6 +72,8 @@ const App = () => (
                 <Route path="/invoices" element={<Documents kind="invoice" key="invoice" />} />
                 <Route path="/invoices/:id" element={<DocumentPage kind="invoice" key="invoice" />} />
                 <Route path="/clients" element={<Clients />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:id" element={<ProjectPage />} />
                 <Route path="/links" element={<Links />} />
                 <Route path="/links/:id" element={<LinkDetail />} />
                 <Route path="/settings" element={<Settings />} />
