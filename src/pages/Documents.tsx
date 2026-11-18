@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Settings2 } from "lucide-react";
+import { Calculator, Plus, Settings2 } from "lucide-react";
+import { RateSetter } from "@/components/calculators/RateSetter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -47,6 +48,7 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
   const { data: docs = [], isLoading, error } = useDocuments(kind);
   const [filter, setFilter] = useState<"all" | DisplayStatus>("all");
   const [creating, setCreating] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
 
   const rows = useMemo(
     () => docs.map((d) => ({ ...d, display: displayStatus(d) })),
@@ -114,12 +116,20 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
         title={label.many}
         subtitle={kind === "invoice" ? "Bill clients and track what's still owed." : "Price the work before it starts."}
         actions={
-          <button
-            onClick={newDoc} disabled={creating}
-            className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50"
-          >
-            <Plus className="size-4" /> New {label.one}
-          </button>
+          <>
+            <button
+              onClick={() => setRateOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-secondary"
+            >
+              <Calculator className="size-4" /> <span className="hidden sm:inline">What to charge</span><span className="sm:hidden">Rate</span>
+            </button>
+            <button
+              onClick={newDoc} disabled={creating}
+              className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50"
+            >
+              <Plus className="size-4" /> New {label.one}
+            </button>
+          </>
         }
       />
 
@@ -197,6 +207,7 @@ const Documents = ({ kind }: { kind: DocumentKind }) => {
           />
         </div>
       )}
+      <RateSetter open={rateOpen} onClose={() => setRateOpen(false)} />
     </div>
   );
 };

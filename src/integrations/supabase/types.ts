@@ -29,6 +29,8 @@ export interface ExpenseTemplate {
   category: string | null;
   bucket: Bucket;
   amount: number;
+  /** How often the bill is due, in months: 1, 3, 6 or 12. `amount` is paid each time. */
+  every_months: number;
   created_at: string;
 }
 
@@ -171,6 +173,8 @@ export interface Goal {
   bucket: Bucket | null;
   account_id: string | null;
   deposit_pct: number | null;
+  /** The bill this goal pre-pays, set by the Get-ahead planner. */
+  bill_id: string | null;
   sort_order: number;
   notes: string | null;
   created_at: string;

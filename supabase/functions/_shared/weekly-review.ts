@@ -58,6 +58,14 @@ interface GoalRow {
   created_at: string;
   funding: string;
   bucket: string | null;
+  bill_id: string | null;
+}
+
+interface BillRow {
+  id: string;
+  name: string;
+  amount: number | string;
+  every_months: number | null;
 }
 
 interface ProgressRow {
@@ -72,7 +80,7 @@ export async function buildWeeklyReview(
 ): Promise<WeeklyReview> {
   const { thisMonday, lastMonday, lastSunday } = weekBounds(now);
 
-  const [txnRes, balRes, profRes, goalsRes, progressRes] = await Promise.all([
+  const [txnRes, balRes, profRes, goalsRes, progressRes, billsRes] = await Promise.all([
     db.from("transactions")
       .select("type,bucket,amount,category,description,occurred_at,parent_id")
       .eq("user_id", userId)
@@ -82,11 +90,14 @@ export async function buildWeeklyReview(
     // nothing under the service-role key used by weekly-review / -batch.
     db.rpc("user_bucket_balances", { p_user_id: userId }),
     db.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
-    db.from("goals").select("id,name,target_amount,target_date,created_at,funding,bucket")
+    db.from("goals").select("id,name,target_amount,target_date,created_at,funding,bucket,bill_id")
       .eq("user_id", userId).eq("status", "active").order("sort_order"),
     db.from("goal_progress").select("goal_id,current_amount,last_contribution_at")
       .eq("user_id", userId),
+    db.from("expense_templates").select("id,name,amount,every_months").eq("user_id", userId),
   ]);
+  const bills: Record<string, BillRow> = {};
+  (billsRes.data ?? []).forEach((b: BillRow) => { bills[b.id] = b; });
 
   const txns: TxnRow[] = txnRes.data ?? [];
   const balances: Record<string, number> = {};
@@ -177,9 +188,16 @@ export async function buildWeeklyReview(
       }
     }
 
+    // Goals made by the Get-ahead planner: "2.8 months ahead on Rent".
+    const bill = g.bill_id ? bills[g.bill_id] : undefined;
+    const perMonth = bill ? Number(bill.amount) / Math.max(1, Number(bill.every_months) || 1) : 0;
+    const aheadHtml = perMonth > 0
+      ? `<br><span style="font-size:12px;color:${EMAIL.textDim}">${Math.floor((Math.max(0, cur) / perMonth) * 10) / 10} months ahead on ${bill!.name}</span>`
+      : "";
+
     return `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL.border}">${g.name}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL.border}">${g.name}${aheadHtml}</td>
         <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL.border};text-align:right">${formatKES(cur)} / ${formatKES(target)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL.border};text-align:right;font-weight:600">${Math.round(p)}%</td>
         <td style="padding:8px 12px;border-bottom:1px solid ${EMAIL.border};text-align:right">${statusHtml || "-"}</td>

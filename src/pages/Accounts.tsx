@@ -11,10 +11,11 @@ import {
 } from "@/integrations/supabase/types";
 import { groupByKind, isStale, reconcileDiff } from "@/lib/accounts";
 import {
-  ArrowRight, Pencil, Plus, Scale, Server, Landmark, Smartphone, Wallet,
+  ArrowRight, Pencil, PiggyBank, Plus, Scale, Server, Landmark, Smartphone, Wallet,
   CircleDollarSign, Archive, ArchiveRestore,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SavingsGrowth } from "@/components/calculators/SavingsGrowth";
 import { PageHeader } from "@/components/app/PageHeader";
 import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { AccountModal } from "@/components/app/AccountModal";
@@ -44,6 +45,7 @@ const Accounts = () => {
 
   const [accountModal, setAccountModal] = useState<{ open: boolean; account: Account | null }>({ open: false, account: null });
   const [transferOpen, setTransferOpen] = useState(false);
+  const [savingsOpen, setSavingsOpen] = useState(false);
   const [adjust, setAdjust] = useState<{ open: boolean; accountId?: string }>({ open: false });
 
   const { data, isLoading: loading } = useQuery({
@@ -123,6 +125,12 @@ const Accounts = () => {
         subtitle="Where your money actually sits: platforms, banks, M-Pesa and cash."
         actions={
           <>
+            <button
+              onClick={() => setSavingsOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-border hover:bg-secondary transition"
+            >
+              <PiggyBank className="size-4" /> <span className="hidden sm:inline">Where to keep savings</span><span className="sm:hidden">Savings</span>
+            </button>
             {active.length >= 2 && (
               <button
                 onClick={() => setTransferOpen(true)}
@@ -321,6 +329,7 @@ const Accounts = () => {
         onClose={() => setAdjust({ open: false })}
         onSaved={reload}
       />
+      <SavingsGrowth open={savingsOpen} onClose={() => setSavingsOpen(false)} />
     </div>
   );
 };

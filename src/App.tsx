@@ -29,6 +29,7 @@ const Documents = lazy(() => import("./pages/Documents.tsx"));
 const DocumentPage = lazy(() => import("./pages/DocumentPage.tsx"));
 const Clients = lazy(() => import("./pages/Clients.tsx"));
 const PublicDocument = lazy(() => import("./pages/PublicDocument.tsx"));
+const Calculators = lazy(() => import("./pages/Calculators.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/d/:token" element={<PublicDocument />} />
+              <Route path="/calculators" element={<Calculators />} />
               <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/accounts" element={<Accounts />} />

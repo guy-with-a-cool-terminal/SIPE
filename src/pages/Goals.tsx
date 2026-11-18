@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { CardGridSkeleton } from "@/components/app/Skeletons";
 import { GoalModal } from "@/components/app/GoalModal";
 import { GoalContributionModal } from "@/components/app/GoalContributionModal";
+import { PlanMenu } from "@/components/calculators/PlanMenu";
 
 type Filter = "active" | "paused" | "achieved" | "all";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -176,12 +177,15 @@ const Goals = () => {
         title="Goals"
         subtitle="Named targets with progress and projections."
         actions={
-          <button
-            onClick={() => setGoalModal({ open: true, goal: null })}
-            className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
-          >
-            <Plus className="size-4" /> New<span className="hidden sm:inline"> goal</span>
-          </button>
+          <>
+            <PlanMenu />
+            <button
+              onClick={() => setGoalModal({ open: true, goal: null })}
+              className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary-glow transition text-sm"
+            >
+              <Plus className="size-4" /> New<span className="hidden sm:inline"> goal</span>
+            </button>
+          </>
         }
       />
 

@@ -4,9 +4,10 @@ import { Logo } from "./Nav";
 
 const cols = [
   { title: "Product", links: [
-    { label: "How the split works", href: "#split" },
-    { label: "Invoicing", href: "#invoicing" },
-    { label: "FAQ", href: "#faq" },
+    { label: "How the split works", href: "/#split" },
+    { label: "Invoicing", href: "/#invoicing" },
+    { label: "Calculators", to: "/calculators" },
+    { label: "FAQ", href: "/#faq" },
   ] },
   { title: "Account", links: [
     { label: "Log in", to: "/login" },

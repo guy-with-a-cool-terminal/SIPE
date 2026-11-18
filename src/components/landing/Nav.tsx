@@ -13,9 +13,10 @@ export const Nav = () => (
     <Container className="flex h-16 items-center justify-between gap-3 sm:h-[72px]">
       <Logo />
       <nav className="hidden items-center gap-10 text-[15px] text-foreground md:flex" aria-label="Main">
-        <a href="#split" className="transition hover:text-primary">How the split works</a>
-        <a href="#invoicing" className="transition hover:text-primary">Invoicing</a>
-        <a href="#faq" className="transition hover:text-primary">FAQ</a>
+        <a href="/#split" className="transition hover:text-primary">How the split works</a>
+        <a href="/#invoicing" className="transition hover:text-primary">Invoicing</a>
+        <Link to="/calculators" className="transition hover:text-primary">Calculators</Link>
+        <a href="/#faq" className="transition hover:text-primary">FAQ</a>
       </nav>
       <div className="flex items-center gap-1 sm:gap-4">
         <Link to="/login" className="whitespace-nowrap px-3 py-2.5 text-[15px] text-foreground transition hover:text-primary">Log in</Link>

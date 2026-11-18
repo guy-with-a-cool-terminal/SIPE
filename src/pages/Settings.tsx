@@ -5,7 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BUCKET_META, formatKES, type AllocationSettings, type Bucket, type ExpenseTemplate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Trash2, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Link2, LogIn, Plus, Scale, Target, Trash2, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { GetAheadPlanner } from "@/components/calculators/GetAheadPlanner";
+import { PrepayOrKeep } from "@/components/calculators/PrepayOrKeep";
+import { ExpensesCheck } from "@/components/calculators/ExpensesCheck";
+import { PLANNER_KEY, usePlannerData } from "@/hooks/usePlannerData";
+import { BILL_INTERVALS, INTERVAL_LABEL, minExpensesPct, monthlyEquivalent } from "@/lib/planner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { CardGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { AddExpenseModal } from "@/components/app/AddExpenseModal";
@@ -74,6 +80,13 @@ const SettingsPage = () => {
   const [billCategory, setBillCategory] = useState("");
   const [savingBill, setSavingBill] = useState(false);
   const [logTemplate, setLogTemplate] = useState<ExpenseTemplate | null>(null);
+  const [billEvery, setBillEvery] = useState<number>(1);
+  const [planBill, setPlanBill] = useState<ExpenseTemplate | null>(null);
+  const [prepayBill, setPrepayBill] = useState<ExpenseTemplate | null>(null);
+  const [expensesCheckOpen, setExpensesCheckOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: planner } = usePlannerData();
+  const refreshPlanner = () => queryClient.invalidateQueries({ queryKey: [PLANNER_KEY] });
 
   // Payment links state
   const [links, setLinks] = useState<PaymentLink[]>([]);
@@ -196,6 +209,7 @@ const SettingsPage = () => {
     ]);
     setSaving(false);
     if (a.error || b.error) return toast.error(a.error?.message || b.error?.message || "Save failed");
+    refreshPlanner();
     toast.success("Settings saved");
   };
 
@@ -209,13 +223,15 @@ const SettingsPage = () => {
       name: billName.trim(),
       bucket: billBucket,
       amount: amt,
+      every_months: billEvery,
       category: billCategory.trim() || null,
     });
     setSavingBill(false);
     if (error) return toast.error(error.message);
-    setBillName(""); setBillBucket("E"); setBillAmount(""); setBillCategory("");
+    setBillName(""); setBillBucket("E"); setBillAmount(""); setBillCategory(""); setBillEvery(1);
     setShowAddBill(false);
     loadTemplates();
+    refreshPlanner();
     toast.success("Bill saved");
   };
 
@@ -223,6 +239,7 @@ const SettingsPage = () => {
     const { error } = await supabase.from("expense_templates").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setTemplates(prev => prev.filter(t => t.id !== id));
+    refreshPlanner();
   };
 
   const webhookUrl = `${SUPABASE_URL}/functions/v1/paystack-webhook?uid=${user?.id}`;
@@ -388,6 +405,25 @@ const SettingsPage = () => {
                 </div>
               </section>
 
+              {(() => {
+                const need = minExpensesPct(planner.billsMonthly, planner.income.monthly);
+                if (planner.bills.length === 0 || need == null) return null;
+                const short = s.expenses_pct < need;
+                return (
+                  <section className="glass rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm min-w-0">
+                      Your bills need at least <span className="font-semibold tabular-nums">{need}%</span> of a typical month.{" "}
+                      <span className={short ? "text-destructive" : "text-primary"}>
+                        {short ? `Expenses is at ${s.expenses_pct}%.` : "Expenses covers them."}
+                      </span>
+                    </p>
+                    <button onClick={() => setExpensesCheckOpen(true)} className="text-sm font-medium text-primary hover:text-primary/80">
+                      See the maths
+                    </button>
+                  </section>
+                );
+              })()}
+
               <section className="glass rounded-2xl p-6">
                 <h2 className="text-base font-semibold mb-1">Monthly spending limits</h2>
                 <p className="text-sm text-muted-foreground mb-5">Cap how much you spend from each bucket per month. Leave blank for no limit.</p>
@@ -485,7 +521,9 @@ const SettingsPage = () => {
                   {showAddBill ? <><X className="size-4" /> Cancel</> : <><Plus className="size-4" /> Add bill</>}
                 </button>
               </div>
-              <p className="text-sm text-muted-foreground mb-5">Save rent, wifi, subscriptions etc. for quick-add when logging expenses.</p>
+              <p className="text-sm text-muted-foreground mb-5">
+                Save rent, wifi, subscriptions etc. for quick-add when logging expenses, and to plan paying them months ahead.
+              </p>
 
               {showAddBill && (
                 <div className="bg-secondary/30 rounded-xl p-4 mb-4 space-y-3">
@@ -517,6 +555,15 @@ const SettingsPage = () => {
                       />
                     </label>
                     <label className="block col-span-2">
+                      <span className="text-xs text-muted-foreground">How often</span>
+                      <select
+                        value={billEvery} onChange={(e) => setBillEvery(Number(e.target.value))}
+                        className="mt-1 w-full bg-input border border-border rounded-lg px-3 py-2 text-sm"
+                      >
+                        {BILL_INTERVALS.map(n => <option key={n} value={n}>{INTERVAL_LABEL[n]}</option>)}
+                      </select>
+                    </label>
+                    <label className="block col-span-2">
                       <span className="text-xs text-muted-foreground">Category (optional)</span>
                       <input
                         value={billCategory} onChange={(e) => setBillCategory(e.target.value)}
@@ -546,11 +593,32 @@ const SettingsPage = () => {
                           <div className="size-7 rounded-md grid place-items-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: `hsl(${meta.color} / 0.15)`, color: `hsl(${meta.color})` }}>{t.bucket}</div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{t.name}</p>
-                            {t.category && <p className="text-xs text-muted-foreground">{t.category}</p>}
+                            <p className="text-xs text-muted-foreground">
+                              {[
+                                t.every_months > 1 ? `${INTERVAL_LABEL[t.every_months]}, ${formatKES(monthlyEquivalent(Number(t.amount), t.every_months), { whole: true })}/mo` : null,
+                                t.category,
+                              ].filter(Boolean).join(" · ")}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                           <span className="text-sm font-semibold tabular-nums">{formatKES(t.amount)}</span>
+                          <button
+                            onClick={() => setPlanBill(t)}
+                            className="text-muted-foreground hover:text-primary transition"
+                            title="Plan to get months ahead"
+                            aria-label={`Plan to get ahead on ${t.name}`}
+                          >
+                            <Target className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => setPrepayBill(t)}
+                            className="text-muted-foreground hover:text-primary transition"
+                            title="Pay upfront or keep the money?"
+                            aria-label={`Pay ${t.name} upfront or keep the money`}
+                          >
+                            <Scale className="size-4" />
+                          </button>
                           <button
                             onClick={() => setLogTemplate(t)}
                             className="text-muted-foreground hover:text-primary transition"
@@ -569,9 +637,14 @@ const SettingsPage = () => {
               )}
 
               {templates.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-3">
-                  Total committed: {formatKES(templates.reduce((s, t) => s + Number(t.amount), 0))} / month
-                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Total committed: {formatKES(templates.reduce((s, t) => s + monthlyEquivalent(Number(t.amount), t.every_months), 0))} / month
+                  </p>
+                  <button onClick={() => setExpensesCheckOpen(true)} className="text-xs font-medium text-primary hover:text-primary/80">
+                    Is my Expenses % enough?
+                  </button>
+                </div>
               )}
             </section>
           )}
@@ -681,6 +754,18 @@ const SettingsPage = () => {
         onClose={() => setLogTemplate(null)}
         onSaved={() => setLogTemplate(null)}
         userId={user!.id}
+      />
+      <GetAheadPlanner open={!!planBill} bill={planBill} onClose={() => setPlanBill(null)} />
+      <PrepayOrKeep open={!!prepayBill} bill={prepayBill} onClose={() => setPrepayBill(null)} />
+      <ExpensesCheck
+        open={expensesCheckOpen}
+        onClose={() => setExpensesCheckOpen(false)}
+        currentPct={s.expenses_pct}
+        onApply={(pct) => {
+          setS({ ...s, expenses_pct: pct });
+          setActiveTab("allocation");
+          toast.message(`Expenses set to ${pct}%. Adjust the others so the split adds up to 100, then save.`);
+        }}
       />
     </div>
   );

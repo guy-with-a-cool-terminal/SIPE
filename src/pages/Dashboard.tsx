@@ -4,9 +4,12 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_META, formatKES, type Account, type AccountBalance, type Bucket, type BucketBalance, type ExpenseTemplate, type Transaction } from "@/integrations/supabase/types";
 import { reconcileDiff } from "@/lib/accounts";
+import { SAVINGS_NUDGE_MIN, monthlyEquivalent, netRate } from "@/lib/planner";
+import { SavingsGrowth } from "@/components/calculators/SavingsGrowth";
+import { MonthsAhead } from "@/components/app/MonthsAhead";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, Plus, Wallet, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Info, PiggyBank, Plus, Wallet, X } from "lucide-react";
 import { DepositModal } from "@/components/app/DepositModal";
 import { TransactionDetailSheet } from "@/components/app/TransactionDetailSheet";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -42,6 +45,7 @@ const Dashboard = () => {
   usePageTitle("Dashboard");
   const queryClient = useQueryClient();
   const [showDeposit, setShowDeposit] = useState(false);
+  const [showSavings, setShowSavings] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<Period>("all");
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
@@ -150,11 +154,12 @@ const Dashboard = () => {
   const cashDiff = reconcileDiff(cashTotal, totalBalance);
   const cashUnreconciled = Math.abs(cashDiff) > 1;
 
-  // Total committed bills per bucket (ignoring payments)
+  // Total committed bills per bucket (ignoring payments). Bills that aren't
+  // monthly count at their monthly set-aside (36k yearly wifi = 3k a month).
   const committed = useMemo(() => {
     const map: Partial<Record<Bucket, number>> = {};
     for (const t of templates) {
-      map[t.bucket] = (map[t.bucket] || 0) + Number(t.amount);
+      map[t.bucket] = (map[t.bucket] || 0) + monthlyEquivalent(Number(t.amount), t.every_months);
     }
     return map;
   }, [templates]);
@@ -182,7 +187,7 @@ const Dashboard = () => {
     }
     const map: Partial<Record<Bucket, number>> = {};
     for (const t of templates) {
-      const remaining = Math.max(0, Number(t.amount) - (paid[t.id] || 0));
+      const remaining = Math.max(0, monthlyEquivalent(Number(t.amount), t.every_months) - (paid[t.id] || 0));
       map[t.bucket] = (map[t.bucket] || 0) + remaining;
     }
     return map;
@@ -587,6 +592,32 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      <MonthsAhead />
+
+      {/* Savings nudge: once the Savings bucket holds a real amount, show what it could earn. */}
+      {Number(balances.S?.balance ?? 0) >= SAVINGS_NUDGE_MIN && (() => {
+        const saved = Number(balances.S.balance);
+        // A plain year in a money market fund at an example 9% before tax.
+        const perYear = saved * netRate(0.09);
+        return (
+          <div className="glass -mt-4 mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="size-8 flex-shrink-0 rounded-lg grid place-items-center bg-primary/10 text-primary">
+                <PiggyBank className="size-4" />
+              </div>
+              <p className="text-sm">
+                Your {formatKES(saved, { whole: true })} in Savings could earn about{" "}
+                <span className="font-semibold text-primary tabular-nums">{formatKES(perYear, { whole: true })}</span> in a year in a money market fund.
+              </p>
+            </div>
+            <button onClick={() => setShowSavings(true)} className="text-sm font-medium text-primary hover:text-primary/80">
+              Compare options
+            </button>
+          </div>
+        );
+      })()}
+      <SavingsGrowth open={showSavings} onClose={() => setShowSavings(false)} />
 
       {/* Transactions */}
       <div className="flex items-center justify-between mb-3">
