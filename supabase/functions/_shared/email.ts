@@ -78,11 +78,13 @@ export interface ShellArgs {
   /** When set, a footer "unsubscribe" line is rendered. */
   unsubscribeToken?: string | null;
   footerNote?: string;
+  /** Show the "Open your SIPE dashboard" line. Off for people who have no account yet. */
+  dashboardLink?: boolean;
 }
 
 /** Wraps section HTML in the shared SIPE email chrome (dark, brand-blue accent). */
 export function emailShell(
-  { heading, subtitle, bodyHtml, unsubscribeToken, footerNote }: ShellArgs,
+  { heading, subtitle, bodyHtml, unsubscribeToken, footerNote, dashboardLink = true }: ShellArgs,
 ): string {
   const unsubLine = unsubscribeToken
     ? `<p style="margin:8px 0 0;font-size:12px;color:${EMAIL.textFaint};text-align:center">
@@ -90,7 +92,7 @@ export function emailShell(
        </p>`
     : "";
   const note = footerNote
-    ? `<p style="margin:0 0 6px;font-size:12px;color:${EMAIL.textFaint};text-align:center">${footerNote}</p>`
+    ? `<p style="margin:${dashboardLink ? "0" : "24px"} 0 6px;font-size:12px;color:${EMAIL.textFaint};text-align:center">${footerNote}</p>`
     : "";
 
   return `<!DOCTYPE html>
@@ -110,9 +112,9 @@ export function emailShell(
       </div>
       <div style="padding:20px 32px 28px">
         ${bodyHtml}
-        <p style="margin:24px 0 0;font-size:12px;color:${EMAIL.textFaint};text-align:center">
+        ${dashboardLink ? `<p style="margin:24px 0 0;font-size:12px;color:${EMAIL.textFaint};text-align:center">
           Open your <a href="${dashboardUrl()}" style="color:${EMAIL.brand};text-decoration:none">SIPE dashboard</a>
-        </p>
+        </p>` : ""}
         ${note}
         ${unsubLine}
       </div>
